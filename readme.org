@@ -4,7 +4,7 @@
 
 * Performance de inicialização
 
-  O emacs é, no fundo, um híbrido de editor de texto e interpretador; e como todo bom interpretador, ele executa /garbage collection/ periodicamente para minizar usos desnecessários da memória do usuário. No entanto, a frequência com que o emacs realiza essa operação é alta demais para os padrões modernos, pois foi decidida pensando em computadores com quantidades baixíssimas de ram. Para aumentar a performance, diminuímos a frequência aqui, permitindo que o programa só faça gc quando o uso desnecessário exceder 50MB.
+  O emacs é, no fundo, um híbrido de editor de texto e interpretador; e como todo bom interpretador, ele executa /garbage collection/ periodicamente para minizar usos desnecessários da memória do usuário. No entanto, a frequência com que o emacs realiza essa operação é alta demais para os padrões modernos, pois foi decidida pensando em computadores com quantidades baixíssimas de ram. Para aumentar a performance, eu diminuo a frequência aqui, permitindo que o programa só faça gc quando o uso desnecessário exceder 50MB.
 
   #+begin_src emacs-lisp
     (setq gc-cons-threshold (* 50 1000 1000))
@@ -49,7 +49,7 @@
       `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
    #+end_src
    
-* Estilo
+* Visual
 
   Na minha opinião, o visual padrão é ok, mas eu não usaria por um período prolongado nem sob ameaça.
 
@@ -59,12 +59,15 @@
 
   #+begin_src emacs-lisp
     (menu-bar-mode -1)
-    (scroll-bar-mode -1)
+    ;; (scroll-bar-mode -1)
     (tool-bar-mode -1)
     (tooltip-mode -1)
 
-    (setq default-frame-alist '((undecorated . t)))
-    (add-hook 'window-setup-hook 'toggle-frame-maximized t)
+    (setq default-frame-alist '((undecorated . t)
+				(font . "Source Code Pro-12")))
+
+    (add-hook 'server-after-make-frame-hook #'toggle-frame-maximized t)
+    (add-hook 'server-after-make-frame-hook #'(lambda () (scroll-bar-mode -1)))
 
     (setq inhibit-startup-screen t)
   #+end_src
@@ -93,14 +96,13 @@
       :init (smooth-scrolling-mode 1))
   #+end_src
 
-** Fonte e tema
+** Tema
 
    No momento, meu tema favorito é o doom-one da coleção =doom-themes=.
 
    #+begin_src emacs-lisp
      (use-package doom-themes)
      (load-theme 'doom-one t)
-     (set-face-font 'default "Source Code Pro 12")
    #+end_src
 
 ** Modeline
@@ -108,12 +110,12 @@
    Acho a =doom-modeline= bem bonita e informativa. Pra ela funcionar direitinho em novas instalações do emacs, não dá pra esquecer de executar =M-x all-the-icons-install-fonts RET=.
 
    #+begin_src emacs-lisp
-	  (use-package all-the-icons)
+     (use-package all-the-icons)
 
-	  (use-package doom-modeline
-	    :init (doom-modeline-mode 1)
-	    :custom
-	    (doom-modeline-major-mode-icon nil))
+     (use-package doom-modeline
+       :init (doom-modeline-mode 1)
+       :custom
+       (doom-modeline-major-mode-icon nil))
    #+end_src
 
 * Evil
@@ -227,18 +229,19 @@
 
 * Programação
 
-  Essa é a única parte que realmente não me deixa satisfeito no momento. Mas ela também é meio chata de mexer kkkkk, então eu vou arrumar ela depois. 
+  Essa é a única parte que realmente não me deixa satisfeito no momento. Mas ela também é meio chata de mexer, então eu estou procrastinando no momento.
 
-** Pequenos ajustes
+** Pequenos pacotes úteis
 
-   O =rainbow-mode= ajuda a perceber parênteses/colchetes/chaves desbalanceados e também é bem estiloso.
+
+   O =rainbow-mode= exibe delimitadores correspondentes com uma mesma cor.
 
    #+begin_src emacs-lisp
      (use-package rainbow-delimiters
        :hook (prog-mode . rainbow-delimiters-mode))
    #+end_src
 
-   O =smart-parens= também ajuda. (texto horrível kkkk)
+   O =smart-parens= previne delimitadores desbalanceados.
 
    #+begin_src emacs-lisp
      (use-package smartparens
@@ -277,7 +280,6 @@
 
    #+begin_src emacs-lisp
      (use-package python-mode)
-
      (use-package lsp-pyright
        :hook (python-mode . (lambda ()
 			      (require 'lsp-pyright)
@@ -286,7 +288,7 @@
    
 * Atalhos de teclado
   
-** Pacotes
+** Pacotes úteis
 
 *** Which-key
 
@@ -345,6 +347,8 @@
   #+end_src
 
 * Performance de execução
+
+  Finalizado o carregamento do arquivo de configuração, o emacs pode realizar /garbage collections/ com mais frequência sem grandes impactos de performance. Portanto, eu abaixo o limite do uso desnecessário para 20MB aqui.
 
   #+begin_src emacs-lisp
     (setq gc-cons-threshold (* 2 1000 1000))

@@ -24,12 +24,15 @@
  `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
 
 (menu-bar-mode -1)
-(scroll-bar-mode -1)
+;; (scroll-bar-mode -1)
 (tool-bar-mode -1)
 (tooltip-mode -1)
 
-(setq default-frame-alist '((undecorated . t)))
-(add-hook 'window-setup-hook 'toggle-frame-maximized t)
+(setq default-frame-alist '((undecorated . t)
+			    (font . "Source Code Pro-12")))
+
+(add-hook 'server-after-make-frame-hook #'toggle-frame-maximized t)
+(add-hook 'server-after-make-frame-hook #'(lambda () (scroll-bar-mode -1)))
 
 (setq inhibit-startup-screen t)
 
@@ -51,7 +54,6 @@
 
 (use-package doom-themes)
 (load-theme 'doom-one t)
-(set-face-font 'default "Source Code Pro 12")
 
 (use-package all-the-icons)
 
@@ -157,7 +159,6 @@
   (lsp-ui-doc-show-with-cursor nil))
 
 (use-package python-mode)
-
 (use-package lsp-pyright
   :hook (python-mode . (lambda ()
 			 (require 'lsp-pyright)
