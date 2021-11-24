@@ -1,0 +1,351 @@
+#+title: Minha configuração do GNU emacs
+#+date: 20 de novembro de 2021
+#+property: header-args:emacs-lisp :tangle ./init.el :mkdirp yes
+
+* Performance de inicialização
+
+  O emacs é, no fundo, um híbrido de editor de texto e interpretador; e como todo bom interpretador, ele executa /garbage collection/ periodicamente para minizar usos desnecessários da memória do usuário. No entanto, a frequência com que o emacs realiza essa operação é alta demais para os padrões modernos, pois foi decidida pensando em computadores com quantidades baixíssimas de ram. Para aumentar a performance, diminuímos a frequência aqui, permitindo que o programa só faça gc quando o uso desnecessário exceder 50MB.
+
+  #+begin_src emacs-lisp
+    (setq gc-cons-threshold (* 50 1000 1000))
+  #+end_src
+
+* Gerenciamento de pacotes
+
+  Os pacotes de emacs-lisp são a principal maneira de customizar e extender o emacs. Há um gerenciador de pacotes nativo, o =package.el=, para facilitar a instalação e o gerenciamento deles. Para que ele tenha acesso a um bom acervo de pacotes, eu o configuro para utilizar como fontes o MELPA (repositório da comunidade), o repositório dos desenvolvedores do =org-mode= e o ELPA (repositório oficial da GNU).
+
+  #+begin_src emacs-lisp
+    (require 'package)
+
+    (setq package-archives '(("melpa" . "https://melpa.org/packages/")
+			     ("org"   . "https://orgmode.org/elpa/")
+			     ("elpa"  . "https://elpa.gnu.org/packages/")))
+
+    (package-initialize)
+    (unless package-archive-contents
+      (package-refresh-contents))
+  #+end_src
+
+  O =package.el= é ok, mas ele não oferece uma biblioteca robusta para a instalação e a configuração de pacotes. Esse papel é assumido pelo =use-package=, cujo uso permite uma configuração bem mais limpa e organizada.
+
+  #+begin_src emacs-lisp
+    ;; Instalando o use-package se não estiver instalado
+    (unless (package-installed-p 'use-package)
+      (package-install 'use-package))
+
+    (require 'use-package)
+    (setq use-package-always-ensure t)
+  #+end_src
+
+* Organização de arquivos
+
+  A organização de arquivos de configuração e de dados não é consistente entre os vários pacotes. O pacote =no-littering= soluciona esse problema configurando uma ampla seleção de pacotes para deixar suas configurações em um diretório =etc= e seus dados em um =var=, ambos localizados sob o =.emacs.d= por padrão.
+
+   #+begin_src emacs-lisp
+     (use-package no-littering)
+
+     ;; Arquivos de auto-save no var
+     (setq auto-save-file-name-transforms
+      `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
+   #+end_src
+   
+* Estilo
+
+  Na minha opinião, o visual padrão é ok, mas eu não usaria por um período prolongado nem sob ameaça.
+
+** Configuração básica
+
+   Eu prefiro utilizar o emacs sempre maximizado e sem nenhum enfeite de janela. Nada de tela inicial também.
+
+  #+begin_src emacs-lisp
+    (menu-bar-mode -1)
+    (scroll-bar-mode -1)
+    (tool-bar-mode -1)
+    (tooltip-mode -1)
+
+    (setq default-frame-alist '((undecorated . t)))
+    (add-hook 'window-setup-hook 'toggle-frame-maximized t)
+
+    (setq inhibit-startup-screen t)
+  #+end_src
+
+  Mas uma pequena margem entre o texto e as bordas da tela não faz mal, e linhas numeradas são (geralmente) bem úteis.
+
+  #+begin_src emacs-lisp
+    (set-fringe-mode 10)
+
+    (column-number-mode)
+    (global-display-line-numbers-mode t)
+    (setq display-line-numbers-type 'relative)
+
+    (dolist (mode '(term-mode-hook
+		    dired-mode-hook
+		    calendar-mode-hook
+		    shell-mode-hook
+		    eshell-mode-hook))
+      (add-hook mode (lambda () (display-line-numbers-mode 0))))
+  #+end_src
+
+  Finalmente, eu detesto a rolagem padrão do emacs. Rolagem suave é uma necessidade básica pra mim.
+
+  #+begin_src emacs-lisp
+    (use-package smooth-scrolling
+      :init (smooth-scrolling-mode 1))
+  #+end_src
+
+** Fonte e tema
+
+   No momento, meu tema favorito é o doom-one da coleção =doom-themes=.
+
+   #+begin_src emacs-lisp
+     (use-package doom-themes)
+     (load-theme 'doom-one t)
+     (set-face-font 'default "Source Code Pro 12")
+   #+end_src
+
+** Modeline
+   
+   Acho a =doom-modeline= bem bonita e informativa. Pra ela funcionar direitinho em novas instalações do emacs, não dá pra esquecer de executar =M-x all-the-icons-install-fonts RET=.
+
+   #+begin_src emacs-lisp
+	  (use-package all-the-icons)
+
+	  (use-package doom-modeline
+	    :init (doom-modeline-mode 1)
+	    :custom
+	    (doom-modeline-major-mode-icon nil))
+   #+end_src
+
+* Evil
+
+   Eu não sou um grande fã dos atalhos de edição padrão do emacs, especialmente depois de ter conhecido os atalhos ergonômicos do vim. Felizmente, o excelente pacote =evil= permite ao emacs emular a experiência confortável de edição que o vim oferece.
+  
+   #+begin_src emacs-lisp
+     (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+
+     (use-package evil
+       :init
+       (setq evil-want-integration t)
+       (setq evil-want-keybinding nil)
+       (setq evil-want-C-u-scroll t)
+       (setq evil-want-C-i-jump nil)
+       :config
+       (evil-mode 1)
+       (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
+       (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char-and-join)
+
+       ;; Use visual line motions even outside of visual-line-mode buffers
+       (evil-global-set-key 'motion "j" 'evil-next-visual-line)
+       (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
+
+       (evil-set-initial-state 'messages-buffer-mode 'normal)
+       (evil-set-initial-state 'dashboard-mode 'normal))
+   #+end_src
+
+** Complementos do evil
+
+   O =evil-collection= aumenta a integração do =evil= com uma ampla coleção de pacotes, e o =evil-nerd-commenter= emula um dos vários plugins de comentário feitos para o vim.
+
+   #+begin_src emacs-lisp
+     (use-package evil-collection
+       :after evil
+       :config
+       (evil-collection-init))
+
+     (use-package evil-nerd-commenter
+       :after evil
+       :config (evilnc-default-hotkeys t) ;; use default key bindings (M-;) in Emacs state
+       :bind (:map evil-normal-state-map
+		   ("gc" . evilnc-comment-or-uncomment-lines)))
+   #+end_src
+
+* Completion
+
+  Completion é uma palavra bem difícil de traduzir nesse contexto kkkk. Mas baicamente, existem diversas funcionalides no emacs quenvolvem selecionar uma string de uma lista de possibilidades. Talvez o mais clássico exemplo disso seja o =M-x=, que executa uma função elisp entre as existentes. Completion no contexto do emacs se refere à capacidade do editor de auxiliar o usuário nesses processos de seleção, seja autocompletando o que o usuário digita ou exibindo as possibilidades válidas. o framework nativo de completion funciona, mas é bem mínimo; os pacotes instalados e configurados nessa seção expandem a sua funcionalidade e tornam a experiência de utilizá-lo mais agradável.
+
+** Vertico
+
+   Uma versão mínima do tradicional =ivy=, o vertico exibe as possibilidades válidas em um processo de seleção em uma interface bem agradável, além de expandir a funcionalidade nativa de completion. Peguei essa configuração de um amigo kkkk.
+
+   #+begin_src emacs-lisp
+     (defun ed/minibuffer-backward-kill (arg)
+       "When minibuffer is completing a file name delete up to parent folder, otherwise delete a word"
+       (interactive "p")
+       (if minibuffer-completing-file-name
+	   ;; Borrowed from https://github.com/raxod502/selectrum/issues/498#issuecomment-803283608
+	   (if (string-match-p "/." (minibuffer-contents))
+	       (zap-up-to-char (- arg) ?/)
+	     (delete-minibuffer-contents))
+	 (backward-delete-char arg)))
+
+     (use-package vertico
+       :bind (:map vertico-map
+		   ("C-j" . vertico-next)
+		   ("C-k" . vertico-previous)
+		   ("C-l" . vertico-exit-input)
+		   :map minibuffer-local-map
+		   ("M-h" . backward-kill-word)
+		   ("<backspace>" . ed/minibuffer-backward-kill))
+       :init
+       (vertico-mode))
+   #+end_src
+
+** Marginalia
+
+   O marginalia inclui anotações úteis na interface do vertico.
+
+   #+begin_src emacs-lisp
+     (use-package marginalia
+       :after vertico
+       :init (marginalia-mode))
+   #+end_src
+
+** Orderless
+
+   Normalmente, a pesquisa em um processo de seleção se dá de forma linear. O =orderless= muda isso.
+
+   #+begin_src emacs-lisp
+     (use-package orderless
+       :init
+       (setq completion-styles '(orderless)
+	     completion-category-defaults nil
+	     completion-category-overrides '((file (styles . (partial-completion))))))
+   #+end_src
+
+* Ferramentas
+** Dired
+
+   O editor de diretórios ou =dired= é o explorador de arquivos nativo do emacs.
+
+   #+begin_src emacs-lisp
+     (general-def 'normal 'dired-mode-map
+       "h" #'dired-up-directory
+       "l" #'dired-find-file)
+
+     (setq dired-listing-switches "-al --group-directories-first")
+   #+end_src
+
+* Programação
+
+  Essa é a única parte que realmente não me deixa satisfeito no momento. Mas ela também é meio chata de mexer kkkkk, então eu vou arrumar ela depois. 
+
+** Pequenos ajustes
+
+   O =rainbow-mode= ajuda a perceber parênteses/colchetes/chaves desbalanceados e também é bem estiloso.
+
+   #+begin_src emacs-lisp
+     (use-package rainbow-delimiters
+       :hook (prog-mode . rainbow-delimiters-mode))
+   #+end_src
+
+   O =smart-parens= também ajuda. (texto horrível kkkk)
+
+   #+begin_src emacs-lisp
+     (use-package smartparens
+       :hook (prog-mode . smartparens-strict-mode))
+   #+end_src
+   
+** Language Server Protocol
+
+   Os pacotes usados aqui são =lsp-mode= e =lsp-ui=.
+
+   #+begin_src emacs-lisp
+     (defun ed/lsp-mode-setup ()
+       (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
+       (lsp-headerline-breadcrumb-mode))
+
+     (use-package lsp-mode
+       :commands (lsp lsp-deferred)
+       :hook (lsp-mode . ed/lsp-mode-setup)
+       :init
+       (setq lsp-keymap-prefix "C-c l")
+       :config
+       (lsp-enable-which-key-integration))
+
+     (use-package lsp-ui
+       :hook (lsp-mode . lsp-ui-mode)
+       :custom
+       (lsp-eldoc-enable-hover nil)
+       (lsp-lens-enable nil)
+       (lsp-ui-sideline-show-code-actions nil)
+       (lsp-ui-sideline-show-hover nil)
+       (lsp-signature-render-documentation nil)
+       (lsp-ui-doc-show-with-cursor nil))
+   #+end_src
+
+** Python
+
+   #+begin_src emacs-lisp
+     (use-package python-mode)
+
+     (use-package lsp-pyright
+       :hook (python-mode . (lambda ()
+			      (require 'lsp-pyright)
+			      (lsp-deferred))))
+   #+end_src
+   
+* Atalhos de teclado
+  
+** Pacotes
+
+*** Which-key
+
+   Às vezes é difícil lembrar de todos os atalhos de teclado. O pacote =which-key= é uma verdadeira mão na roda nessas horas.
+   
+   #+begin_src emacs-lisp
+     (use-package which-key
+       :defer 0
+       :config
+       (which-key-mode)
+       (setq which-key-idle-delay 1))
+   #+end_src
+
+*** General
+
+    O =general.el= fornece uma biblioteca robusta para a criação de atalhos personalizados que integra muito bem com o evil.
+
+    #+begin_src emacs-lisp
+      (use-package general :after evil)
+    #+end_src
+
+** Meus atalhos
+
+   Os meus atalhos são vagamente inspirados nos do DOOM emacs, que eu usei por alguns meses. A minha "tecla líder" é a barra de espaço.
+
+   #+begin_src emacs-lisp
+     (general-create-definer ed/leader-key
+       :states '(normal insert visual emacs)
+       :prefix "SPC"
+       :global-prefix "C-c")
+
+     (ed/leader-key
+       "SPC" #'find-file
+       "."   #'dired-jump
+       ":"   #'execute-extended-command
+       "c"   #'compile
+       "b"   #'switch-to-buffer
+       "w"     evil-window-map
+       "h"     help-map)
+   #+end_src
+
+* Geração automática do init.el
+
+  Esse arquivo que você está lendo agora mesmo é o arquivo que eu de fato edito quando configuro o emacs. No entanto, não é ele que o emacs lê quando abre, e sim o =init.el=. O código abaixo faz com que, sempre que eu salve esse documento aqui, o =init.el= seja gerado automaticamente a partir dele.
+
+  #+begin_src emacs-lisp
+    ;; Automatically tangle our Emacs.org config file when we save it
+    (defun ed/org-babel-tangle-config ()
+      (when (string-equal (file-name-directory (buffer-file-name))
+			  (expand-file-name user-emacs-directory))
+	;; Dynamic scoping to the rescue
+	(let ((org-confirm-babel-evaluate nil))
+	  (org-babel-tangle))))
+
+    (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'ed/org-babel-tangle-config)))
+  #+end_src
+
+* Performance de execução
+
+  #+begin_src emacs-lisp
+    (setq gc-cons-threshold (* 2 1000 1000))
+  #+end_src
