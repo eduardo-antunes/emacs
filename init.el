@@ -3,8 +3,8 @@
 (require 'package)
 
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-			 ("org"   . "https://orgmode.org/elpa/")
-			 ("elpa"  . "https://elpa.gnu.org/packages/")))
+                         ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+                         ("elpa"  . "https://elpa.gnu.org/packages/")))
 
 (package-initialize)
 (unless package-archive-contents
@@ -21,18 +21,15 @@
 
 ;; Arquivos de auto-save no var
 (setq auto-save-file-name-transforms
- `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
+      `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
 
 (menu-bar-mode -1)
-;; (scroll-bar-mode -1)
 (tool-bar-mode -1)
+(scroll-bar-mode -1)
 (tooltip-mode -1)
 
-(setq default-frame-alist '((undecorated . t)
-			    (font . "Source Code Pro-12")))
-
-(add-hook 'server-after-make-frame-hook #'toggle-frame-maximized t)
-(add-hook 'server-after-make-frame-hook #'(lambda () (scroll-bar-mode -1)))
+(add-hook 'server-after-make-frame-hook #'(lambda () (scroll-bar-mode -1)
+                                            (set-frame-font "Source Code Pro-12")))
 
 (setq inhibit-startup-screen t)
 
@@ -42,11 +39,11 @@
 (global-display-line-numbers-mode t)
 (setq display-line-numbers-type 'relative)
 
-(dolist (mode '(term-mode-hook
-		dired-mode-hook
-		calendar-mode-hook
-		shell-mode-hook
-		eshell-mode-hook))
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                calendar-mode-hook
+                shell-mode-hook
+                eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 (use-package smooth-scrolling
@@ -54,13 +51,18 @@
 
 (use-package doom-themes)
 (load-theme 'doom-one t)
+(set-frame-font "Source Code Pro-12" nil t)
 
 (use-package all-the-icons)
 
 (use-package doom-modeline
-  :init (doom-modeline-mode 1)
+  :init
+  (doom-modeline-mode 1)
+  (size-indication-mode 1)
   :custom
-  (doom-modeline-major-mode-icon nil))
+  (doom-modeline-major-mode-icon nil)
+  (doom-modeline-buffer-encoding nil)
+  (doom-modeline-buffer-file-name-style 'relative-from-project))
 
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
@@ -91,26 +93,25 @@
   :after evil
   :config (evilnc-default-hotkeys t) ;; use default key bindings (M-;) in Emacs state
   :bind (:map evil-normal-state-map
-	      ("gc" . evilnc-comment-or-uncomment-lines)))
+              ("gc" . evilnc-comment-or-uncomment-lines)))
 
 (defun ed/minibuffer-backward-kill (arg)
-  "When minibuffer is completing a file name delete up to parent folder, otherwise delete a word"
+  "Quando o minibuffer estiver completando o nome de um arquivo, delete tudo até a sua pasta-pai; do contrário, delete normalmente"
   (interactive "p")
   (if minibuffer-completing-file-name
-      ;; Borrowed from https://github.com/raxod502/selectrum/issues/498#issuecomment-803283608
       (if (string-match-p "/." (minibuffer-contents))
-	  (zap-up-to-char (- arg) ?/)
-	(delete-minibuffer-contents))
+          (zap-up-to-char (- arg) ?/)
+        (delete-minibuffer-contents))
     (backward-delete-char arg)))
 
 (use-package vertico
   :bind (:map vertico-map
-	      ("C-j" . vertico-next)
-	      ("C-k" . vertico-previous)
-	      ("C-l" . vertico-exit-input)
-	      :map minibuffer-local-map
-	      ("M-h" . backward-kill-word)
-	      ("<backspace>" . ed/minibuffer-backward-kill))
+              ("C-j" . vertico-next)
+              ("C-k" . vertico-previous)
+              ("C-l" . vertico-exit-input)
+              :map minibuffer-local-map
+              ("M-h" . backward-kill-word)
+              ("<backspace>" . ed/minibuffer-backward-kill))
   :init
   (vertico-mode))
 
@@ -118,11 +119,44 @@
   :after vertico
   :init (marginalia-mode))
 
+(use-package corfu
+  :demand t
+  :bind (:map corfu-map
+              ("M-j" . corfu-next)
+              ("M-k" . corfu-previous))
+  :custom
+  (corfu-cycle t)
+  :config
+  (setq tab-always-indent 'complete)
+  (corfu-global-mode 1))
+
 (use-package orderless
   :init
   (setq completion-styles '(orderless)
-	completion-category-defaults nil
-	completion-category-overrides '((file (styles . (partial-completion))))))
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles . (partial-completion))))))
+
+(defun ed/org-mode-setup ()
+  (org-indent-mode)
+  (visual-line-mode 1))
+
+(use-package org
+  :hook (org-mode . ed/org-mode-setup)
+  :config
+  (setq org-ellipsis " ▾"))
+
+(use-package org-bullets
+  :hook (org-mode . org-bullets-mode)
+  :custom
+  (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+(defun ed/org-mode-visual-fill ()
+  (setq visual-fill-column-width 100
+        visual-fill-column-center-text t)
+  (visual-fill-column-mode 1))
+
+(use-package visual-fill-column
+  :hook (org-mode . ed/org-mode-visual-fill))
 
 (general-def 'normal 'dired-mode-map
   "h" #'dired-up-directory
@@ -130,47 +164,87 @@
 
 (setq dired-listing-switches "-al --group-directories-first")
 
-(use-package rainbow-delimiters
-  :hook (prog-mode . rainbow-delimiters-mode))
-
-(use-package smartparens
-  :hook (prog-mode . smartparens-strict-mode))
-
-(defun ed/lsp-mode-setup ()
-  (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
-  (lsp-headerline-breadcrumb-mode))
-
 (use-package lsp-mode
   :commands (lsp lsp-deferred)
-  :hook (lsp-mode . ed/lsp-mode-setup)
   :init
   (setq lsp-keymap-prefix "C-c l")
+  :custom
+  (lsp-enable-snippet nil)
   :config
+  (setq lsp-headerline-breadcrumb-enable nil)
   (lsp-enable-which-key-integration))
 
 (use-package lsp-ui
   :hook (lsp-mode . lsp-ui-mode)
   :custom
-  (lsp-eldoc-enable-hover nil)
-  (lsp-lens-enable nil)
+  ;; lsp-ui documentation panels
+  (lsp-ui-doc-max-height 8)
+  (lsp-ui-doc-max-width 72)
+  (lsp-ui-doc-delay 0.75)
+  (lsp-ui-doc-show-with-cursor nil)
+  (lsp-ui-doc-show-with-mouse nil)
+  (lsp-ui-doc-position 'at-point)
+
+  ;; lsp-ui sideline
+  (lsp-ui-sideline-show-diagnostics t)
   (lsp-ui-sideline-show-code-actions nil)
-  (lsp-ui-sideline-show-hover nil)
-  (lsp-signature-render-documentation nil)
-  (lsp-ui-doc-show-with-cursor nil))
+  (lsp-ui-sideline-actions-icon lsp-ui-sideline-actions-icon-default)
+
+  ;; lsp-ui miscelaneous
+  (lsp-lens-enable t)
+  (lsp-signature-render-documentation nil))
+
+(use-package flycheck
+  :hook (lsp-mode . flycheck-mode))
+
+(use-package projectile
+  :config (projectile-mode)
+  :bind-keymap ("C-c p" . projectile-command-map))
+
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+(use-package smartparens
+  :hook (prog-mode . smartparens-mode))
+
+(defun ed/c-cpp-mode-setup ()
+  (c-set-style "cc-mode")
+  (c-toggle-auto-state 1)
+  (lsp-deferred))
+
+(add-hook 'c-mode-hook   #'ed/c-cpp-mode-setup)
+(add-hook 'c++-mode-hook #'ed/c-cpp-mode-setup)
+
+(use-package nasm-mode
+  :mode "\\.asm\\'")
 
 (use-package python-mode)
 (use-package lsp-pyright
   :hook (python-mode . (lambda ()
-			 (require 'lsp-pyright)
-			 (lsp-deferred))))
+                         (require 'lsp-pyright)
+                         (lsp-deferred))))
+
+(use-package dart-mode)
+
+(use-package lsp-dart
+  :hook (dart-mode . lsp-deferred)
+  :custom
+  (lsp-dart-flutter-sdk-dir "~/Downloads/flutter")
+  (lsp-dart-sdk-dir (concat lsp-dart-flutter-sdk-dir "/bin/cache/dart-sdk")))
+
+(use-package flutter
+  :after dart-mode
+  :general
+  (ed/leader-key
+    "mr" '(flutter-run-or-hot-reload :which-key "hot reload")))
+
+(use-package general :after evil)
 
 (use-package which-key
   :defer 0
   :config
   (which-key-mode)
   (setq which-key-idle-delay 1))
-
-(use-package general :after evil)
 
 (general-create-definer ed/leader-key
   :states '(normal insert visual emacs)
@@ -179,17 +253,19 @@
 
 (ed/leader-key
   "SPC" #'find-file
-  "."   #'dired-jump
-  ":"   #'execute-extended-command
-  "c"   #'compile
+  "."   #'dired
+  ":"   '(execute-extended-command :which-key "M-x")
+  "c"   '(:ignore t :which-key "compile")
+  "cc"  '(compile)
+  "cr"  '(recompile)
   "b"   #'switch-to-buffer
-  "w"     evil-window-map
-  "h"     help-map)
+  "w"   '(:keymap evil-window-map :which-key "window")
+  "h"   '(:keymap help-map :which-key "help")
 
 ;; Automatically tangle our Emacs.org config file when we save it
 (defun ed/org-babel-tangle-config ()
   (when (string-equal (file-name-directory (buffer-file-name))
-		      (expand-file-name user-emacs-directory))
+                      (expand-file-name user-emacs-directory))
     ;; Dynamic scoping to the rescue
     (let ((org-confirm-babel-evaluate nil))
       (org-babel-tangle))))
