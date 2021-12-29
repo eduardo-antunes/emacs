@@ -17,52 +17,28 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
+(setq user-full-name       "Eduardo Antunes"
+      user-real-login-name "Eduardo"
+      user-login-name      "eduardo"
+      user-mail-address    "eduardoantunes986@gmail.com")
+
 (use-package no-littering)
 
-;; Arquivos de auto-save no var
 (setq auto-save-file-name-transforms
       `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
 
-(menu-bar-mode -1)
-(tool-bar-mode -1)
-(scroll-bar-mode -1)
-(tooltip-mode -1)
+(setq-default custom-file (no-littering-expand-etc-file-name "custom.el"))
+(when (file-exists-p custom-file)
+  (load custom-file))
 
-(add-hook 'server-after-make-frame-hook #'(lambda () (scroll-bar-mode -1)
-                                            (set-frame-font "Source Code Pro-12")))
+(defalias #'yes-or-no-p #'y-or-n-p)
+
+(add-hook 'before-save-hook #'whitespace-cleanup)
+
+(setq delete-by-moving-to-trash t)
 
 (setq inhibit-startup-screen t)
-
-(set-fringe-mode 10)
-
-(column-number-mode)
-(global-display-line-numbers-mode t)
-(setq display-line-numbers-type 'relative)
-
-(dolist (mode '(org-mode-hook
-                term-mode-hook
-                calendar-mode-hook
-                shell-mode-hook
-                eshell-mode-hook))
-  (add-hook mode (lambda () (display-line-numbers-mode 0))))
-
-(use-package smooth-scrolling
-  :init (smooth-scrolling-mode 1))
-
-(use-package doom-themes)
-(load-theme 'doom-one t)
-(set-frame-font "Source Code Pro-12" nil t)
-
-(use-package all-the-icons)
-
-(use-package doom-modeline
-  :init
-  (doom-modeline-mode 1)
-  (size-indication-mode 1)
-  :custom
-  (doom-modeline-major-mode-icon nil)
-  (doom-modeline-buffer-encoding nil)
-  (doom-modeline-buffer-file-name-style 'relative-from-project))
+(setq-default initial-scratch-message nil)
 
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
@@ -95,8 +71,99 @@
   :bind (:map evil-normal-state-map
               ("gc" . evilnc-comment-or-uncomment-lines)))
 
+(use-package general
+  :after evil
+  :config
+
+  (general-create-definer ed/leader-key
+    :states '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-c")
+
+  (ed/leader-key
+    "SPC" #'find-file
+    "."   #'dired-jump
+    ":"   '(execute-extended-command :which-key "M-x")
+
+    ;; compile operations
+    "c"   '(:ignore t :which-key "compile")
+    "cc"  #'compile
+    "cr"  #'recompile
+
+    ;; buffer operations
+    "b"   '(:ignore t :which-key "buffer")
+    "bb"  #'switch-to-buffer
+    "bd"  #'kill-current-buffer
+    "bk"  #'kill-buffer
+
+    ;; keymaps
+    "w"   '(:keymap evil-window-map :which-key "window")
+    "h"   '(:keymap help-map :which-key "help")
+    "o"   '(:ignore t :which-key "open")
+    "m"   '(:ignore t :which-key "mode")))
+
+(use-package which-key
+  :defer 0
+  :config
+  (which-key-mode)
+  (setq which-key-idle-delay 1))
+
+(menu-bar-mode   -1)
+(tool-bar-mode   -1)
+(scroll-bar-mode -1)
+(tooltip-mode    -1)
+(set-fringe-mode 10)
+
+(column-number-mode)
+(global-display-line-numbers-mode t)
+(setq display-line-numbers-type 'relative)
+
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                calendar-mode-hook
+                shell-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+(use-package smooth-scrolling
+  :init (smooth-scrolling-mode 1))
+
+(use-package doom-themes
+  :config
+  (doom-themes-org-config))
+
+(use-package modus-themes
+  :general
+  (ed/leader-key
+    "t" #'modus-themes-toggle))
+
+(load-theme 'doom-one t)
+
+(set-frame-font "Source Code Pro-12" nil t)
+
+;; Necessário para uso com o daemon
+(add-hook 'server-after-make-frame-hook
+          #'(lambda () (set-frame-font "Source Code Pro-12" nil t)))
+
+(use-package all-the-icons)
+
+(use-package doom-modeline
+  :init
+  (doom-modeline-mode 1)
+  (size-indication-mode 1)
+  :custom
+  (doom-modeline-major-mode-icon nil)
+  (doom-modeline-buffer-encoding nil)
+  (doom-modeline-buffer-file-name-style 'relative-from-project))
+
+(use-package orderless
+  :init
+  (setq completion-styles '(orderless)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles . (partial-completion))))))
+
 (defun ed/minibuffer-backward-kill (arg)
-  "Quando o minibuffer estiver completando o nome de um arquivo, delete tudo até a sua pasta-pai; do contrário, delete normalmente"
+  "Um delete mais conveniente no minibuffer"
   (interactive "p")
   (if minibuffer-completing-file-name
       (if (string-match-p "/." (minibuffer-contents))
@@ -105,13 +172,16 @@
     (backward-delete-char arg)))
 
 (use-package vertico
-  :bind (:map vertico-map
-              ("C-j" . vertico-next)
-              ("C-k" . vertico-previous)
-              ("C-l" . vertico-exit-input)
-              :map minibuffer-local-map
-              ("M-h" . backward-kill-word)
-              ("<backspace>" . ed/minibuffer-backward-kill))
+  :general
+  (general-def vertico-map
+    "C-j"  #'vertico-next
+    "C-k"  #'vertico-previous
+    "C-l"  #'vertico-exit-input)
+
+  (general-def minibuffer-local-map
+    "M-h"          #'backward-kill-word
+    "<backspace>"  #'ed/minibuffer-backward-kill)
+
   :init
   (vertico-mode))
 
@@ -121,20 +191,18 @@
 
 (use-package corfu
   :demand t
-  :bind (:map corfu-map
-              ("M-j" . corfu-next)
-              ("M-k" . corfu-previous))
   :custom
   (corfu-cycle t)
+  (corfu-preselect-first nil)
   :config
   (setq tab-always-indent 'complete)
-  (corfu-global-mode 1))
-
-(use-package orderless
-  :init
-  (setq completion-styles '(orderless)
-        completion-category-defaults nil
-        completion-category-overrides '((file (styles . (partial-completion))))))
+  (corfu-global-mode 1)
+  :general
+  (general-def corfu-map
+    "TAB"      #'corfu-next
+    [tab]      #'corfu-next
+    "S-TAB"    #'corfu-previous
+    [backtab]  #'corfu-previous))
 
 (defun ed/org-mode-setup ()
   (org-indent-mode)
@@ -158,21 +226,98 @@
 (use-package visual-fill-column
   :hook (org-mode . ed/org-mode-visual-fill))
 
-(general-def 'normal 'dired-mode-map
-  "h" #'dired-up-directory
-  "l" #'dired-find-file)
+(defun ed/org-babel-tangle-config ()
+  (when (string-equal (file-name-directory (buffer-file-name))
+                      (expand-file-name user-emacs-directory))
+    (let ((org-confirm-babel-evaluate nil))
+      (org-babel-tangle))))
 
-(setq dired-listing-switches "-al --group-directories-first")
+(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'ed/org-babel-tangle-config)))
+
+(use-package dired
+  :ensure nil
+  :custom
+  (dired-listing-switches "-al --group-directories-first")
+  :general
+  (general-def 'normal 'dired-mode-map
+    "h" #'dired-up-directory
+    "l" #'dired-find-file))
+
+(defun ed/eshell-prompt ()
+  (concat
+   (eshell/pwd)
+   (if (= (user-uid) 0) " # "
+     " λ ")))
+
+(defun ed/configure-eshell ()
+  (require 'evil-collection-eshell)
+  (evil-collection-eshell-setup)
+
+  ;; Salve comandos no histórico à medida que eles forem inseridos
+  (add-hook 'eshell-pre-command-hook #'eshell-save-some-history)
+
+  ;; Reduza o buffer do eshell quando ele exceder o máximo de linhas
+  (add-to-list 'eshell-output-filter-functions #'eshell-truncate-buffer)
+
+  (setq eshell-history-size 10000
+        eshell-hist-ignore-dups t
+        eshell-buffer-maximum-lines 10000
+        eshell-prompt-function #'ed/eshell-prompt
+        eshell-prompt-regexp "^[^λ#]*[λ#] "
+        eshell-scroll-to-bottom-on-input t))
+
+(use-package eshell
+  :ensure nil
+  :hook (eshell-first-time-mode . ed/configure-eshell)
+  :general
+  (ed/leader-key
+    "oe" #'eshell))
+
+(use-package eshell-syntax-highlighting
+  :after eshell
+  :hook (eshell-mode . eshell-syntax-highlighting-mode))
+
+(use-package vterm
+  :general
+  (ed/leader-key
+    "ot" '(vterm-other-window :which-key "terminal")
+    "oT" '(vterm :which-key "terminal+")))
+
+(use-package magit
+  :commands (magit-status magit-get-current-branch)
+  :general
+  (ed/leader-key
+    "g" '(magit-status :which-key "git")))
+
+(use-package magit-todos ;; mostra TODOs para os arquivos em um repo
+  :after magit)
+
+(use-package yasnippet
+  :hook
+  (prog-mode . yas-minor-mode)
+  (org-mode . yas-minor-mode))
+
+(use-package yasnippet-snippets)
+
+(use-package projectile
+  :config (projectile-mode)
+  :general
+  (ed/leader-key
+    "p"  '(:keymap projectile-command-map :which-key "project")))
 
 (use-package lsp-mode
   :commands (lsp lsp-deferred)
   :init
-  (setq lsp-keymap-prefix "C-c l")
+  (setq lsp-keymap-prefix nil)
   :custom
-  (lsp-enable-snippet nil)
+  (lsp-enable-snippet t)
+  (lsp-completion-provider :none)
   :config
   (setq lsp-headerline-breadcrumb-enable nil)
-  (lsp-enable-which-key-integration))
+  (lsp-enable-which-key-integration)
+  :general
+  (ed/leader-key
+    "l" '(:keymap lsp-command-map :which-key "lsp")))
 
 (use-package lsp-ui
   :hook (lsp-mode . lsp-ui-mode)
@@ -196,16 +341,6 @@
 
 (use-package flycheck
   :hook (lsp-mode . flycheck-mode))
-
-(use-package projectile
-  :config (projectile-mode)
-  :bind-keymap ("C-c p" . projectile-command-map))
-
-(use-package rainbow-delimiters
-  :hook (prog-mode . rainbow-delimiters-mode))
-
-(use-package smartparens
-  :hook (prog-mode . smartparens-mode))
 
 (defun ed/c-cpp-mode-setup ()
   (c-set-style "cc-mode")
@@ -235,41 +370,43 @@
 (use-package flutter
   :after dart-mode
   :general
-  (ed/leader-key
+  (ed/leader-key dart-mode-map
     "mr" '(flutter-run-or-hot-reload :which-key "hot reload")))
 
-(use-package general :after evil)
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
 
-(use-package which-key
-  :defer 0
+(use-package smartparens
+  :hook (prog-mode . smartparens-mode))
+
+(use-package hl-todo
+  :hook (prog-mode . hl-todo-mode)
+  :hook (yaml-mode . hl-todo-mode)
   :config
-  (which-key-mode)
-  (setq which-key-idle-delay 1))
+  ;; Emprestado do DOOM emacs
+  (setq hl-todo-highlight-punctuation ":"
+        hl-todo-keyword-faces
+        `(;; For things that need to be done, just not today.
+          ("TODO" warning bold)
+          ;; For problems that will become bigger problems later if not
+          ;; fixed ASAP.
+          ("FIXME" error bold)
+          ;; For tidbits that are unconventional and not intended uses of the
+          ;; constituent parts, and may break in a future update.
+          ("HACK" font-lock-constant-face bold)
+          ;; For things that were done hastily and/or hasn't been thoroughly
+          ;; tested. It may not even be necessary!
+          ("REVIEW" font-lock-keyword-face bold)
+          ;; For especially important gotchas with a given implementation,
+          ;; directed at another user other than the author.
+          ("NOTE" success bold)
+          ;; For things that just gotta go and will soon be gone.
+          ("DEPRECATED" font-lock-doc-face bold)
+          ;; For a known bug that needs a workaround
+          ("BUG" error bold)
+          ;; For warning about a problematic or misguiding code
+          ("XXX" font-lock-constant-face bold))))
 
-(general-create-definer ed/leader-key
-  :states '(normal insert visual emacs)
-  :prefix "SPC"
-  :global-prefix "C-c")
-
-(ed/leader-key
-  "SPC" #'find-file
-  "."   #'dired
-  ":"   '(execute-extended-command :which-key "M-x")
-  "c"   '(:ignore t :which-key "compile")
-  "cc"  '(compile)
-  "cr"  '(recompile)
-  "b"   #'switch-to-buffer
-  "w"   '(:keymap evil-window-map :which-key "window")
-  "h"   '(:keymap help-map :which-key "help")
-
-;; Automatically tangle our Emacs.org config file when we save it
-(defun ed/org-babel-tangle-config ()
-  (when (string-equal (file-name-directory (buffer-file-name))
-                      (expand-file-name user-emacs-directory))
-    ;; Dynamic scoping to the rescue
-    (let ((org-confirm-babel-evaluate nil))
-      (org-babel-tangle))))
-
-(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'ed/org-babel-tangle-config)))
+(add-hook 'prog-mode-hook (lambda () (electric-pair-local-mode 1)))
 
 (setq gc-cons-threshold (* 2 1000 1000))
