@@ -12,8 +12,7 @@
 (blink-cursor-mode  0)
 
 ;; Fonte
-(defun ed/set-font ()
+(defun ed-set-font ()
   (set-frame-font "Source Code Pro-12" nil t))
 
-(ed/set-font)
-(add-hook 'server-after-make-frame-hook #'ed/set-font)
+(add-hook 'server-after-make-frame-hook #'ed-set-font)

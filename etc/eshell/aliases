@@ -11,3 +11,4 @@ alias cp cp -i $1
 # Abrindo ferramentas úteis
 alias magit magit .
 alias dired dired .
+alias dir dired

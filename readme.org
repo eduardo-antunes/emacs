@@ -8,17 +8,21 @@ Bem-vindo à minha humilde configuração do GNU emacs, um editor de texto livre
 
 O emacs é mais que um editor de texto. É também um interpretador de uma linguagem de scripting chamada de emacs-lisp ou elisp. Essa linguagem é utilizada para configurá-lo e extendê-lo. Quando o editor é iniciado, ele executa alguns arquivos de elisp do usuário. Esses arquivos são o =init.el= e o =early-init.el=, localizados, geralmente, sob o diretório =~/.emacs.d=.
 
-O =init.el= é o arquivo clássico de configuração do emacs. Eu o escrevi de tal maneira que, sempre que eu salvo este documento aqui, os trechos de elisp sejam escritos nele (a configuração para esse comportamento está [[*Configuração literária][aqui]]). Assim, o =readme.org= funciona como uma configuração na prática. É bem mais conveniente do que editar emacs-lisp diretamente.
+O =init.el= é o arquivo clássico de configuração do emacs. Eu o escrevi de tal maneira que, sempre que eu salvo este documento aqui, os trechos de elisp sejam escritos nele (a configuração para esse comportamento está [[#lit][aqui]] e no cabeçalho deste arquivo). Assim, o =readme.org= funciona como uma configuração na prática. É bem mais conveniente do que editar emacs-lisp diretamente.
 
 Já o =early-init.el= é uma adição nova ao ecossistema do emacs. Ele é executado antes da interface gráfica ser desenhada e do sistema de pacotes ser inicializado. Assim, ele é útil para algumas configurações seletas que se beneficiam de uma execução mais adiantada. Eu o uso para configurar a garbage collection, remover elementos da GUI e determinar a fonte.
 
-* Gerenciamento de pacotes
+* Pacotes
+
+Pacotes são como o emacs chama seus plugins ou extensões. Eles são a principal maneira de extender a funcionalidade do editor, e eu instalo vários ao longo dessa configuração.
 
 ** package.el
 
-Os pacotes de elisp são a principal forma de extender a funcionalidade do emacs. Há um gerenciador de pacotes nativo, o =package.el=, que facilita a sua instalação e gerenciamento. Eu o configuro para baixar pacotes de três fontes: o melpa (repositório da comunidade), o nonGNU e o elpa (repositório oficial do GNU).
+O =package.el= é o gerenciador nativo de pacotes. Eu o configuro para baixar pacotes de três fontes: o melpa (repositório da comunidade), o nonGNU e o elpa (repositório oficial do GNU).
 
 #+begin_src emacs-lisp
+  ;; -*- lexical-binding: t; -*-
+
   (require 'package)
 
   (setq package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -35,7 +39,6 @@ Os pacotes de elisp são a principal forma de extender a funcionalidade do emacs
 O =use-package= é um excelente pacote que introduz uma camada de abstração sobre o gerenciador de pacotes, integrando as ações de configuração e instalação de pacotes em uma única macro. O seu uso torna a minha configuração bem mais limpa e organizada.
 
 #+begin_src emacs-lisp
-  ;; Instalando o use-package se não estiver instalado
   (unless (package-installed-p 'use-package)
     (package-install 'use-package))
 
@@ -43,7 +46,7 @@ O =use-package= é um excelente pacote que introduz uma camada de abstração so
   (setq use-package-always-ensure t)
 #+end_src
 
-* Ajustes gerais
+* Geral
 
 ** Informações pessoais
 
@@ -79,6 +82,15 @@ E customizações feitas utilizando o sistema Customize deveriam ir no =etc=.
     (load custom-file))
 #+end_src
 
+** Rolagem suave
+
+Eu detesto a rolagem padrão do emacs. Rolagem suave é uma necessidade básica pra mim.
+
+#+begin_src emacs-lisp
+  (use-package smooth-scrolling
+    :init (smooth-scrolling-mode 1))
+#+end_src
+
 ** Miscelânea
 
 Não quero ter que digitar "yes" ou "no" por extenso toda hora.
@@ -106,7 +118,9 @@ Obrigado, mas não.
   (setq-default initial-scratch-message nil)
 #+end_src
 
-* Atalhos de teclado
+* Teclado
+
+Alguns pacotes que eu uso para configurar meus atalhos de teclado.
 
 ** Evil
 
@@ -160,12 +174,12 @@ O =general.el= é um pacote análogo ao =use-package=, mas para a criação de a
     :after evil
     :config
 
-    (general-create-definer ed/leader-key
+    (general-create-definer ed-leader-key
       :states '(normal insert visual emacs)
       :prefix "SPC"
       :global-prefix "C-c")
 
-    (ed/leader-key
+    (ed-leader-key
       "SPC" #'find-file
       "."   #'dired-jump
       ":"   '(execute-extended-command :which-key "M-x")
@@ -195,6 +209,8 @@ O =general.el= é um pacote análogo ao =use-package=, mas para a criação de a
 #+begin_src emacs-lisp
   (use-package which-key
     :defer 0
+    :custom
+    (which-key-sort-order #'which-key-prefix-then-key-order)
     :config
     (which-key-mode)
     (setq which-key-idle-delay 1))
@@ -218,64 +234,74 @@ Linhas numeradas são bem úteis...
 
 #+begin_src emacs-lisp
   (dolist (mode '(org-mode-hook
+                  eww-mode-hook
                   term-mode-hook
+                  vterm-mode-hook
                   calendar-mode-hook
                   shell-mode-hook
                   eshell-mode-hook))
     (add-hook mode (lambda () (display-line-numbers-mode 0))))
 #+end_src
 
-** Rolagem suave
+** Fonte
 
-Eu detesto a rolagem padrão do emacs. Rolagem suave é uma necessidade básica pra mim.
+A minha fonte de preferência no momento é a Source Code Pro.
 
 #+begin_src emacs-lisp
-  (use-package smooth-scrolling
-    :init (smooth-scrolling-mode 1))
+  (ed-set-font) ; função definida no early-init
 #+end_src
 
 ** Tema
 
-No momento, meu tema favorito é o doom-one da coleção =doom-themes=.
-
+Meus temas principais no momento são =modus-operandi= (claro) e =modus-vivendi= (escuro).
 
 #+begin_src emacs-lisp
-  (use-package doom-themes
-    :config
-    (doom-themes-org-config))
-
   (use-package modus-themes
+    :custom
+    (modus-themes-org-blocks 'gray-background)
+    (modus-themes-mode-line '(borderless 4))
     :general
-    (ed/leader-key
+    (ed-leader-key
       "t" #'modus-themes-toggle))
 
-  (load-theme 'doom-one t)
+  (let ((time (string-to-number (format-time-string "%H"))))
+    (if (and (> time 5) (< time 18))
+        (modus-themes-load-operandi)
+      (modus-themes-load-vivendi)))
+
 #+end_src
 
 ** Modeline
 
-Acho a =doom-modeline= bem bonita e informativa. Pra ela funcionar direitinho em novas instalações do emacs, não dá pra esquecer de executar =M-x all-the-icons-install-fonts RET=.
+*** Minions
+
+De modo geral, eu gosto da modeline padrão. Eu só não gosto que a seção dos modos menores fique muito entulhada. O pacote =minions= substitui "ícones" dos modos menores pelo próprio e oferece um menu para gerenciá-los. Ele também permite que você selecione alguns para que sejam exibidos normalmente sempre que ativos, o que é ótimo.
 
 #+begin_src emacs-lisp
-  (use-package all-the-icons)
-
-  (use-package doom-modeline
-    :init
-    (doom-modeline-mode 1)
-    (size-indication-mode 1)
+  (use-package minions
     :custom
-    (doom-modeline-major-mode-icon nil)
-    (doom-modeline-buffer-encoding nil)
-    (doom-modeline-buffer-file-name-style 'relative-from-project))
+    (minions-mode-line-lighter "...")
+    :config (minions-mode 1))
+#+end_src
+
+*** Tempo
+
+Ainda estou decidindo se gosto disso.
+
+#+begin_src emacs-lisp :tangle no
+  (setq display-time-format "%H:%M"
+        display-time-default-load-average nil
+        display-time-interval 60)
+  (display-time-mode 1)
 #+end_src
 
 * Completion
 
-Completion é uma palavra bem difícil de traduzir nesse contexto kkkk. Mas basicamente, existem diversas funcionalides no emacs que envolvem selecionar uma string de uma lista de candidatos. Talvez o mais clássico exemplo disso seja o =M-x=, que executa um comando do emacs entre os disponíveis. Completion se refere à capacidade do editor de auxiliar o usuário nesses processos de seleção, seja autocompletando o que o usuário digita ou exibindo as possibilidades válidas. O framework nativo de completion funciona, mas é bem mínimo; os pacotes instalados e configurados nessa seção expandem a sua funcionalidade e tornam a experiência de utilizá-lo mais agradável.
+Frequentemente, para utilizar uma funcionalidade do emacs, é preciso selecionar uma opção entre uma lista de candidatos. O exemplo mais clássico disso é o =M-x=, que executa um comando entre os existentes. Completion é o auxílio que o editor dá ao usuário nesses processos, seja completando o que ele escreve ou simplesmente exibindo a lista de candidatos.
 
 ** Orderless
 
-Normalmente, a pesquisa em um processo de seleção se dá de forma linear. O =orderless= muda isso.
+Toda seleção se baseia nos chamados estilos de seleção. Eles são funções que mapeiam o input do usuário aos candidatos a que ele possivelmente se refere. Opções nativas existem e são o padrão, mas os estilos oferecidos pelo pacote =orderless= me agradam mais. Todos eles admitem que o input do usuário seja mapeado fora de ordem aos candidatos, o que é bem inteligente.
 
 #+begin_src emacs-lisp
   (use-package orderless
@@ -287,10 +313,10 @@ Normalmente, a pesquisa em um processo de seleção se dá de forma linear. O =o
 
 ** Vertico
 
-Uma versão mínima do tradicional =ivy=, o vertico exibe as possibilidades válidas em um processo de seleção como uma lista vertical, além de estender a funcionalidade nativa de completion. Peguei essa configuração de um amigo kkkk.
+Uma versão mínima do tradicional =ivy=, o =vertico= exibe a lista de candidatos de uma seleção em uma lista vertical, o que é bem útil.
 
 #+begin_src emacs-lisp
-  (defun ed/minibuffer-backward-kill (arg)
+  (defun ed-minibuffer-backward-kill (arg)
     "Um delete mais conveniente no minibuffer"
     (interactive "p")
     (if minibuffer-completing-file-name
@@ -308,7 +334,7 @@ Uma versão mínima do tradicional =ivy=, o vertico exibe as possibilidades vál
 
     (general-def minibuffer-local-map
       "M-h"          #'backward-kill-word
-      "<backspace>"  #'ed/minibuffer-backward-kill)
+      "<backspace>"  #'ed-minibuffer-backward-kill)
 
     :init
     (vertico-mode))
@@ -316,7 +342,7 @@ Uma versão mínima do tradicional =ivy=, o vertico exibe as possibilidades vál
 
 ** Marginalia
 
-O marginalia inclui anotações úteis na interface do vertico.
+O =marginalia= inclui anotações úteis junto aos candidatos sempre que eles são exibidos em uma interface, o que inclui a listagem nativa de candidatos e soluções de terceiros, como o =vertico=.
 
 #+begin_src emacs-lisp
   (use-package marginalia
@@ -326,7 +352,7 @@ O marginalia inclui anotações úteis na interface do vertico.
 
 ** Corfu
 
-O corfu providencia uma interface de completion familiar aos usuários de IDEs.
+O =corfu= é análogo ao =vertico=, mas age em buffers comuns ao invés do minibuffer.
 
 #+begin_src emacs-lisp
   (use-package corfu
@@ -349,42 +375,60 @@ O corfu providencia uma interface de completion familiar aos usuários de IDEs.
 
 ** Org
 
-Não vou me preocupar muito em documentar no momento.
+O =org-mode= é um pacote realmente extraordinário. Em essência, ele é uma linguagem de marcação, como markdown e latex. Ele combina uma sintaxe simples e legível com uma grande riqueza de /features/, que incluem embarcação de trechos de código, suporte a latex /inline/, entre outros.
+
+No entanto, o que realmente torna esse pacote especial é a biblioteca de funcionalidades úteis que ele oferece, que tornam essa simples linguagem um sistema eficiente de preparação de documentos, programação literária e planejamento.
+
+*** Aparência
 
 #+begin_src emacs-lisp
-  (defun ed/org-mode-setup ()
-    (org-indent-mode)
-    (visual-line-mode 1))
+    (defun ed-org-mode-setup ()
+      (org-indent-mode)
+      (visual-line-mode 1)
+      (dolist (pair '(("#+begin_src" . ?λ)
+                      ("#+BEGIN_SRC" . ?λ)
+                      ("#+end_src"   . ?λ)
+                      ("#+END_SRC"   . ?λ)))
+        (add-to-list 'prettify-symbols-alist pair))
+      (prettify-symbols-mode))
 
-  (use-package org
-    :hook (org-mode . ed/org-mode-setup)
-    :config
-    (setq org-ellipsis " ▾"))
+    (use-package org
+      :defer t
+      :hook (org-mode . ed-org-mode-setup)
+      :custom
+      (org-hide-emphasis-markers t)
+      :config
+      (setq org-ellipsis " ▾"))
 
-  (use-package org-bullets
-    :hook (org-mode . org-bullets-mode)
-    :custom
-    (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+    (use-package org-bullets
+      :hook (org-mode . org-bullets-mode)
+      :custom
+      (org-bullets-bullet-list '("●" "○" "●" "○" "●" "○" "●")))
 
-  (defun ed/org-mode-visual-fill ()
-    (setq visual-fill-column-width 100
-          visual-fill-column-center-text t)
-    (visual-fill-column-mode 1))
+    (defun ed-org-mode-visual-fill ()
+      (setq visual-fill-column-width 100
+            visual-fill-column-center-text t)
+      (visual-fill-column-mode 1))
 
-  (use-package visual-fill-column
-    :hook (org-mode . ed/org-mode-visual-fill))
+    (use-package visual-fill-column
+      :hook (org-mode . ed-org-mode-visual-fill))
+
+
 #+end_src
 
 *** Configuração literária
+:properties:
+:custom_id: lit
+:end:
 
 #+begin_src emacs-lisp
-  (defun ed/org-babel-tangle-config ()
+  (defun ed-org-babel-tangle-config ()
     (when (string-equal (file-name-directory (buffer-file-name))
                         (expand-file-name user-emacs-directory))
       (let ((org-confirm-babel-evaluate nil))
         (org-babel-tangle))))
 
-  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'ed/org-babel-tangle-config)))
+  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'ed-org-babel-tangle-config)))
 #+end_src
 
 ** Dired
@@ -395,11 +439,12 @@ O editor de diretórios ou =dired= é o explorador de arquivos nativo do emacs.
   (use-package dired
     :ensure nil
     :custom
-    (dired-listing-switches "-al --group-directories-first")
+    (dired-listing-switches "-Al --group-directories-first")
     :general
     (general-def 'normal 'dired-mode-map
-      "h" #'dired-up-directory
-      "l" #'dired-find-file))
+      "SPC" nil
+      "h"   #'dired-up-directory
+      "l"   #'dired-find-file))
 #+end_src
 
 ** Eshell
@@ -407,13 +452,13 @@ O editor de diretórios ou =dired= é o explorador de arquivos nativo do emacs.
 A =eshell= é uma shell estilo UNIX integrada ao emacs. Ela permite que você não só execute programas no sistema, mas também funções internas do emacs, o que lhe confere uma flexibilidade muito grande. Além disso, ela funciona perfeitamente no Windows, ainda que com um desempenho menor.
 
 #+begin_src emacs-lisp
-  (defun ed/eshell-prompt ()
+  (defun ed-eshell-prompt ()
     (concat
      (eshell/pwd)
      (if (= (user-uid) 0) " # "
        " λ ")))
 
-  (defun ed/configure-eshell ()
+  (defun ed-eshell-setup ()
     (require 'evil-collection-eshell)
     (evil-collection-eshell-setup)
 
@@ -426,15 +471,15 @@ A =eshell= é uma shell estilo UNIX integrada ao emacs. Ela permite que você n�
     (setq eshell-history-size 10000
           eshell-hist-ignore-dups t
           eshell-buffer-maximum-lines 10000
-          eshell-prompt-function #'ed/eshell-prompt
+          eshell-prompt-function #'ed-eshell-prompt
           eshell-prompt-regexp "^[^λ#]*[λ#] "
           eshell-scroll-to-bottom-on-input t))
 
   (use-package eshell
     :ensure nil
-    :hook (eshell-first-time-mode . ed/configure-eshell)
+    :hook (eshell-first-time-mode . ed-eshell-setup)
     :general
-    (ed/leader-key
+    (ed-leader-key
       "oe" #'eshell))
 
   (use-package eshell-syntax-highlighting
@@ -449,9 +494,24 @@ O melhor emulador de terminal para o emacs.
 #+begin_src emacs-lisp
   (use-package vterm
     :general
-    (ed/leader-key
+    (ed-leader-key
       "ot" '(vterm-other-window :which-key "terminal")
-      "oT" '(vterm :which-key "terminal+")))
+      "oT" '(vterm :which-key "terminal full")))
+#+end_src
+
+** Pomodoro
+
+Um cronômetro pomodoro bão. (preciso melhorar esse texto)
+
+#+begin_src emacs-lisp
+  (use-package pomm
+    :commands (pomm pomm-start)
+    :custom
+    (pomm-state-file-location
+     (no-littering-expand-var-file-name "pomm.el"))
+    :general
+    (ed-leader-key
+      "op" '(pomm :which-key "pomodoro")))
 #+end_src
 
 * Programação
@@ -465,12 +525,11 @@ O =magit= é um pacote clássico do emacs. Possivelmente a melhor porcelana exis
 #+begin_src emacs-lisp
   (use-package magit
     :commands (magit-status magit-get-current-branch)
+    :custom
+    (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
     :general
-    (ed/leader-key
+    (ed-leader-key
       "g" '(magit-status :which-key "git")))
-
-  (use-package magit-todos ;; mostra TODOs para os arquivos em um repo
-    :after magit)
 #+end_src
 
 ** Snippets
@@ -486,14 +545,17 @@ O =magit= é um pacote clássico do emacs. Possivelmente a melhor porcelana exis
 
 ** Projetos
 
-O pacote =projectile.el= é uma biblioteca de funções que operam ao nível de projeto, o que é muito útil em projetos de programação. Vários outros pacotes possuem boa integração com ele.
+O pacote =projectile= é uma biblioteca de funções que operam ao nível de projeto, o que é muito útil em projetos de programação. Vários outros pacotes possuem boa integração com ele.
 
 #+begin_src emacs-lisp
   (use-package projectile
-    :config (projectile-mode)
+    :init
+    (setq projectile-keympa-prefix nil)
+    :config
+    (projectile-mode)
     :general
-    (ed/leader-key
-      "p"  '(:keymap projectile-command-map :which-key "project")))
+    (ed-leader-key
+      "p" '(:keymap projectile-command-map :which-key "project")))
 #+end_src
 
 ** Linguagens
@@ -514,7 +576,7 @@ O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um
     (setq lsp-headerline-breadcrumb-enable nil)
     (lsp-enable-which-key-integration)
     :general
-    (ed/leader-key
+    (ed-leader-key
       "l" '(:keymap lsp-command-map :which-key "lsp")))
 
   (use-package lsp-ui
@@ -550,13 +612,13 @@ O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um
 **** C/C++
 
 #+begin_src emacs-lisp
-  (defun ed/c-cpp-mode-setup ()
+  (defun ed-c-cpp-setup ()
     (c-set-style "cc-mode")
-    (c-toggle-auto-state 1)
     (lsp-deferred))
 
-  (add-hook 'c-mode-hook   #'ed/c-cpp-mode-setup)
-  (add-hook 'c++-mode-hook #'ed/c-cpp-mode-setup)
+  (use-package cc-mode
+    :hook ((c-mode . ed-c-cpp-setup)
+           (c++-mode . ed-c-cpp-setup)))
 #+end_src
 
 **** Assembly
@@ -569,11 +631,13 @@ O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um
 **** Python
 
 #+begin_src emacs-lisp
+  (defun ed-python-setup ()
+    (require 'lsp-pyright)
+    (lsp-deferred))
+
   (use-package python-mode)
   (use-package lsp-pyright
-    :hook (python-mode . (lambda ()
-                           (require 'lsp-pyright)
-                           (lsp-deferred))))
+    :hook (python-mode . ed-python-setup))
 #+end_src
 
 **** Dart/Flutter
@@ -583,14 +647,15 @@ O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um
 
   (use-package lsp-dart
     :hook (dart-mode . lsp-deferred)
-    :custom
-    (lsp-dart-flutter-sdk-dir "~/Downloads/flutter")
-    (lsp-dart-sdk-dir (concat lsp-dart-flutter-sdk-dir "/bin/cache/dart-sdk")))
+    :init
+    (setq
+     lsp-dart-flutter-sdk-dir "~/Downloads/flutter"
+     lsp-dart-sdk-dir (concat lsp-dart-flutter-sdk-dir "/bin/cache/dart-sdk")))
 
   (use-package flutter
     :after dart-mode
     :general
-    (ed/leader-key dart-mode-map
+    (ed-leader-key dart-mode-map
       "mr" '(flutter-run-or-hot-reload :which-key "hot reload")))
 #+end_src
 
@@ -603,54 +668,16 @@ O =rainbow-mode= exibe delimitadores correspondentes com uma mesma cor.
     :hook (prog-mode . rainbow-delimiters-mode))
 #+end_src
 
-O =smart-parens= previne delimitadores desbalanceados.
-
-#+begin_src emacs-lisp
-  (use-package smartparens
-    :hook (prog-mode . smartparens-mode))
-#+end_src
-
-O =hl-todo= destaca TODOs.
-
-#+begin_src emacs-lisp
-  (use-package hl-todo
-    :hook (prog-mode . hl-todo-mode)
-    :hook (yaml-mode . hl-todo-mode)
-    :config
-    ;; Emprestado do DOOM emacs
-    (setq hl-todo-highlight-punctuation ":"
-          hl-todo-keyword-faces
-          `(;; For things that need to be done, just not today.
-            ("TODO" warning bold)
-            ;; For problems that will become bigger problems later if not
-            ;; fixed ASAP.
-            ("FIXME" error bold)
-            ;; For tidbits that are unconventional and not intended uses of the
-            ;; constituent parts, and may break in a future update.
-            ("HACK" font-lock-constant-face bold)
-            ;; For things that were done hastily and/or hasn't been thoroughly
-            ;; tested. It may not even be necessary!
-            ("REVIEW" font-lock-keyword-face bold)
-            ;; For especially important gotchas with a given implementation,
-            ;; directed at another user other than the author.
-            ("NOTE" success bold)
-            ;; For things that just gotta go and will soon be gone.
-            ("DEPRECATED" font-lock-doc-face bold)
-            ;; For a known bug that needs a workaround
-            ("BUG" error bold)
-            ;; For warning about a problematic or misguiding code
-            ("XXX" font-lock-constant-face bold))))
-#+end_src
-
-O modo menor =electric-pair-mode= é bão demais.
+O modo menor =electric-pair-mode= previne delimitadores desbalanceados.
 
 #+begin_src emacs-lisp
   (add-hook 'prog-mode-hook (lambda () (electric-pair-local-mode 1)))
+  (add-hook 'eshell-mode-hook (lambda () (electric-pair-local-mode 1)))
 #+end_src
 
-* Performance de execução
+* Performance
 
-Finalizado o carregamento do arquivo de configuração, o emacs pode realizar /garbage collections/ com mais frequência sem grandes impactos de performance. Portanto, eu abaixo o limite do uso desnecessário para 20MB aqui.
+Complemento para a configuração de garbage collection do =early-init.el=, em que eu aumento o limite de memória a ser dealocada que o emacs tolera antes de realizar uma "coleta de lixo" para 50MB. Essa configuração aumenta a performance na inicialização, mas durante o uso normal, 20MB é um valor mais razoável.
 
 #+begin_src emacs-lisp
   (setq gc-cons-threshold (* 2 1000 1000))
