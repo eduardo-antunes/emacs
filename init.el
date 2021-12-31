@@ -1,5 +1,3 @@
-(setq gc-cons-threshold (* 50 1000 1000))
-
 (require 'package)
 
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -108,12 +106,6 @@
   (which-key-mode)
   (setq which-key-idle-delay 1))
 
-(menu-bar-mode   -1)
-(tool-bar-mode   -1)
-(scroll-bar-mode -1)
-(tooltip-mode    -1)
-(set-fringe-mode 10)
-
 (column-number-mode)
 (global-display-line-numbers-mode t)
 (setq display-line-numbers-type 'relative)
@@ -138,12 +130,6 @@
     "t" #'modus-themes-toggle))
 
 (load-theme 'doom-one t)
-
-(set-frame-font "Source Code Pro-12" nil t)
-
-;; Necessário para uso com o daemon
-(add-hook 'server-after-make-frame-hook
-          #'(lambda () (set-frame-font "Source Code Pro-12" nil t)))
 
 (use-package all-the-icons)
 

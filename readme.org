@@ -4,13 +4,13 @@
 
 Bem-vindo à minha humilde configuração do GNU emacs, um editor de texto livre e extensível.
 
-* Performance de inicialização
+* Introdução
 
-Como todo interpretador moderno, o emacs realiza garbage collection, uma operação que consiste em dealocar objetos que não estejam mais em uso pelo programa sendo executado (no caso, a minha configuração e os pacotes que eu uso). Essa funcionalidade é ativada sempre que esses objetos consomem uma quantidade fixa de memória. Porém, o valor padrão para essa quantidade é muito baixo, o que prejudica a performance de inicialização. Eu o ajusto aqui, para 50MB.
+O emacs é mais que um editor de texto. É também um interpretador de uma linguagem de scripting chamada de emacs-lisp ou elisp. Essa linguagem é utilizada para configurá-lo e extendê-lo. Quando o editor é iniciado, ele executa alguns arquivos de elisp do usuário. Esses arquivos são o =init.el= e o =early-init.el=, localizados, geralmente, sob o diretório =~/.emacs.d=.
 
-#+begin_src emacs-lisp
-  (setq gc-cons-threshold (* 50 1000 1000))
-#+end_src
+O =init.el= é o arquivo clássico de configuração do emacs. Eu o escrevi de tal maneira que, sempre que eu salvo este documento aqui, os trechos de elisp sejam escritos nele (a configuração para esse comportamento está [[*Configuração literária][aqui]]). Assim, o =readme.org= funciona como uma configuração na prática. É bem mais conveniente do que editar emacs-lisp diretamente.
+
+Já o =early-init.el= é uma adição nova ao ecossistema do emacs. Ele é executado antes da interface gráfica ser desenhada e do sistema de pacotes ser inicializado. Assim, ele é útil para algumas configurações seletas que se beneficiam de uma execução mais adiantada. Eu o uso para configurar a garbage collection, remover elementos da GUI e determinar a fonte.
 
 * Gerenciamento de pacotes
 
@@ -204,18 +204,6 @@ O =general.el= é um pacote análogo ao =use-package=, mas para a criação de a
 
 Na minha opinião, o visual padrão é ok, mas eu não usaria por um período prolongado nem sob ameaça.
 
-** Visual mínimo
-
-Eu prefiro utilizar o emacs sem nenhum elemento visual desnecessário.
-
-#+begin_src emacs-lisp
-  (menu-bar-mode   -1)
-  (tool-bar-mode   -1)
-  (scroll-bar-mode -1)
-  (tooltip-mode    -1)
-  (set-fringe-mode 10)
-#+end_src
-
 ** Linhas numeradas
 
 Linhas numeradas são bem úteis...
@@ -262,16 +250,6 @@ No momento, meu tema favorito é o doom-one da coleção =doom-themes=.
       "t" #'modus-themes-toggle))
 
   (load-theme 'doom-one t)
-#+end_src
-
-** Fonte
-
-#+begin_src emacs-lisp
-  (set-frame-font "Source Code Pro-12" nil t)
-
-  ;; Necessário para uso com o daemon
-  (add-hook 'server-after-make-frame-hook
-            #'(lambda () (set-frame-font "Source Code Pro-12" nil t)))
 #+end_src
 
 ** Modeline
