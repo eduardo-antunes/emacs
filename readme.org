@@ -8,11 +8,53 @@ Bem-vindo à minha humilde configuração do GNU emacs, um editor de texto livre
 
 O emacs é mais que um editor de texto. É também um interpretador de uma linguagem de scripting chamada de emacs-lisp ou elisp. Essa linguagem é utilizada para configurá-lo e extendê-lo. Quando o editor é iniciado, ele executa alguns arquivos de elisp do usuário. Esses arquivos são o =init.el= e o =early-init.el=, localizados, geralmente, sob o diretório =~/.emacs.d=.
 
-O =init.el= é o arquivo clássico de configuração do emacs. Eu o escrevi de tal maneira que, sempre que eu salvo este documento aqui, os trechos de elisp sejam escritos nele (a configuração para esse comportamento está [[#lit][aqui]] e no cabeçalho deste arquivo). Assim, o =readme.org= funciona como uma configuração na prática. É bem mais conveniente do que editar emacs-lisp diretamente.
+O =init.el= é o arquivo clássico de configuração do emacs. Já o =early-init.el= é uma adição mais recente. Ele é carregado em um estágio anterior da execução do editor, o que torna útil para certas configurações específicas.
 
-Já o =early-init.el= é uma adição nova ao ecossistema do emacs. Ele é executado antes da interface gráfica ser desenhada e do sistema de pacotes ser inicializado. Assim, ele é útil para algumas configurações seletas que se beneficiam de uma execução mais adiantada. Eu o uso para configurar a garbage collection, remover elementos da GUI e determinar a fonte.
+Eu não edito nenhum dos dois diretamente. Ao invés disso, eu uso uma configuração literária: um documento org com blocos de emacs-lisp intercalados com texto explicativo, que é, claro, o que você está lendo agora. [[#lit][Essa parte]] da configuração faz com que, sempre que este arquivo seja salvo, o conteúdo dos blocos seja usado para gerar os arquivos.
+
+* Early init
+:properties:
+:header-args:emacs-lisp: :tangle ./early-init.el
+:end:
+
+Todos os blocos de elisp nessa seção se destinam ao =early-init.el=.
+
+** Garbage collection
+
+Como todo interpretador moderno, o emacs realiza garbage collection, uma operação que consiste em dealocar objetos que não estejam mais em uso pelo programa sendo executado (no caso, a minha configuração e os pacotes que eu uso). Essa funcionalidade é ativada sempre que esses objetos consomem uma quantidade fixa de memória. Porém, o valor padrão para essa quantidade é muito baixo, o que prejudica a performance de inicialização. Eu o ajusto aqui, para 50MB.
+
+#+begin_src emacs-lisp
+  ;; -*- lexical-binding: t; -*-
+  (setq gc-cons-threshold (* 50 1000 1000))
+#+end_src
+
+** Visual mínimo
+
+Eu não faço questão de alguns elementos da interface do editor
+
+#+begin_src emacs-lisp
+  (menu-bar-mode     -1)
+  (tool-bar-mode     -1)
+  (scroll-bar-mode   -1)
+  (tooltip-mode      -1)
+  (set-fringe-mode   10)
+  (blink-cursor-mode  0)
+#+end_src
+
+** Fonte
+
+No momento, a minha fonte de preferência é a Source Code Pro. Essa configuração faz com que ela seja carregada corretamente ao usar o emacs no estilo cliente-servidor.
+
+#+begin_src emacs-lisp
+(defun ed-set-font ()
+  (set-frame-font "Source Code Pro-12" nil t))
+
+(add-hook 'server-after-make-frame-hook #'ed-set-font)
+#+end_src
 
 * Pacotes
+
+A partir desse ponto, todas as seções de código elisp fazem parte do =init.el.=
 
 Pacotes são como o emacs chama seus plugins ou extensões. Eles são a principal maneira de extender a funcionalidade do editor, e eu instalo vários ao longo dessa configuração.
 
@@ -22,7 +64,6 @@ O =package.el= é o gerenciador nativo de pacotes. Eu o configuro para baixar pa
 
 #+begin_src emacs-lisp
   ;; -*- lexical-binding: t; -*-
-
   (require 'package)
 
   (setq package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -235,9 +276,9 @@ Linhas numeradas são bem úteis...
 #+begin_src emacs-lisp
   (dolist (mode '(org-mode-hook
                   eww-mode-hook
+                  calendar-mode-hook
                   term-mode-hook
                   vterm-mode-hook
-                  calendar-mode-hook
                   shell-mode-hook
                   eshell-mode-hook))
     (add-hook mode (lambda () (display-line-numbers-mode 0))))
@@ -245,10 +286,8 @@ Linhas numeradas são bem úteis...
 
 ** Fonte
 
-A minha fonte de preferência no momento é a Source Code Pro.
-
 #+begin_src emacs-lisp
-  (ed-set-font) ; função definida no early-init
+  (ed-set-font)
 #+end_src
 
 ** Tema
@@ -268,7 +307,6 @@ Meus temas principais no momento são =modus-operandi= (claro) e =modus-vivendi=
     (if (and (> time 5) (< time 18))
         (modus-themes-load-operandi)
       (modus-themes-load-vivendi)))
-
 #+end_src
 
 ** Modeline
@@ -281,18 +319,18 @@ De modo geral, eu gosto da modeline padrão. Eu só não gosto que a seção dos
   (use-package minions
     :custom
     (minions-mode-line-lighter "...")
+    (minions-prominent-modes '(flyspell-mode text-scale-mode))
     :config (minions-mode 1))
 #+end_src
 
 *** Tempo
 
-Ainda estou decidindo se gosto disso.
+Às vezes eu acho conveniente ver a hora na modeline.
 
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
   (setq display-time-format "%H:%M"
         display-time-default-load-average nil
         display-time-interval 60)
-  (display-time-mode 1)
 #+end_src
 
 * Completion
@@ -403,7 +441,7 @@ No entanto, o que realmente torna esse pacote especial é a biblioteca de funcio
     (use-package org-bullets
       :hook (org-mode . org-bullets-mode)
       :custom
-      (org-bullets-bullet-list '("●" "○" "●" "○" "●" "○" "●")))
+      (org-bullets-bullet-list '("●" "○")))
 
     (defun ed-org-mode-visual-fill ()
       (setq visual-fill-column-width 100
@@ -412,8 +450,6 @@ No entanto, o que realmente torna esse pacote especial é a biblioteca de funcio
 
     (use-package visual-fill-column
       :hook (org-mode . ed-org-mode-visual-fill))
-
-
 #+end_src
 
 *** Configuração literária
@@ -661,7 +697,7 @@ O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um
 
 ** Miscelânea
 
-O =rainbow-mode= exibe delimitadores correspondentes com uma mesma cor.
+O =rainbow-delimiters= exibe delimitadores correspondentes com uma mesma cor.
 
 #+begin_src emacs-lisp
   (use-package rainbow-delimiters

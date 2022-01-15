@@ -1,5 +1,4 @@
 ;; -*- lexical-binding: t; -*-
-
 (require 'package)
 
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -118,14 +117,14 @@
 
 (dolist (mode '(org-mode-hook
                 eww-mode-hook
+                calendar-mode-hook
                 term-mode-hook
                 vterm-mode-hook
-                calendar-mode-hook
                 shell-mode-hook
                 eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-(ed-set-font) ; função definida no early-init
+(ed-set-font)
 
 (use-package modus-themes
   :custom
@@ -143,7 +142,12 @@
 (use-package minions
   :custom
   (minions-mode-line-lighter "...")
+  (minions-prominent-modes '(flyspell-mode text-scale-mode))
   :config (minions-mode 1))
+
+(setq display-time-format "%H:%M"
+      display-time-default-load-average nil
+      display-time-interval 60)
 
 (use-package orderless
   :init
@@ -214,7 +218,7 @@
 (use-package org-bullets
   :hook (org-mode . org-bullets-mode)
   :custom
-  (org-bullets-bullet-list '("●" "○" "●" "○" "●" "○" "●")))
+  (org-bullets-bullet-list '("●" "○")))
 
 (defun ed-org-mode-visual-fill ()
   (setq visual-fill-column-width 100
