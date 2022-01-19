@@ -30,7 +30,7 @@ Como todo interpretador moderno, o emacs realiza garbage collection, uma operaç
 
 ** Visual mínimo
 
-Eu não faço questão de alguns elementos da interface do editor
+Eu não faço questão de alguns elementos da interface.
 
 #+begin_src emacs-lisp
   (menu-bar-mode     -1)
@@ -42,12 +42,15 @@ Eu não faço questão de alguns elementos da interface do editor
 #+end_src
 
 ** Fonte
+:properties:
+:custom_id: font
+:end:
 
-No momento, a minha fonte de preferência é a Source Code Pro. Essa configuração faz com que ela seja carregada corretamente ao usar o emacs no estilo cliente-servidor.
+No momento, a minha fonte de preferência é a Inconsolata. Essa configuração faz com que ela seja carregada corretamente ao usar o emacs no estilo cliente-servidor.
 
 #+begin_src emacs-lisp
 (defun ed-set-font ()
-  (set-frame-font "Source Code Pro-12" nil t))
+  (set-frame-font "Inconsolata-14" nil t))
 
 (add-hook 'server-after-make-frame-hook #'ed-set-font)
 #+end_src
@@ -102,7 +105,7 @@ Alguns pacotes precisam desse tipo de informação.
 
 ** Organização de arquivos
 
-A organização de arquivos de configuração e de dados não é consistente entre os vários pacotes. O pacote =no-littering= soluciona esse problema configurando uma ampla seleção de pacotes para deixar suas configurações em um diretório =etc= e seus dados em um =var=, ambos localizados sob o =.emacs.d= por padrão.
+A organização de arquivos de configuração e de dados não é consistente entre os vários pacotes. O pacote =no-littering= soluciona esse problema configurando uma ampla seleção de pacotes para que deixem suas configurações em um diretório =etc= e seus dados em um =var=, ambos localizados sob o =.emacs.d= por padrão.
 
 #+begin_src emacs-lisp
   (use-package no-littering)
@@ -140,10 +143,22 @@ Não quero ter que digitar "yes" ou "no" por extenso toda hora.
   (defalias #'yes-or-no-p #'y-or-n-p)
 #+end_src
 
-Nada de espaços em branco sobrando.
+Quando o diretório pai de um arquivo não existir, pergunte se deve criá-lo.
 
 #+begin_src emacs-lisp
-  (add-hook 'before-save-hook #'whitespace-cleanup)
+  (defun ed-make-directory-if-non-existing ()
+    (let ((parent-dir (file-name-directory buffer-file-name)))
+      (when (and (not (file-exists-p parent-dir))
+                 (yes-or-no-p "This file's directory doesn't exist. Create it? ")
+        (make-directory parent-dir t)))))
+
+  (add-to-list 'find-file-not-found-functions #'ed-make-directory-if-non-existing)
+#+end_src
+
+  Nada de espaços em branco sobrando.
+
+#+begin_src emacs-lisp
+    (add-hook 'before-save-hook #'whitespace-cleanup)
 #+end_src
 
 Mover arquivos para a lixeira é mais seguro que excluir eles pra sempre.
@@ -163,6 +178,16 @@ Obrigado, mas não.
 
 Alguns pacotes que eu uso para configurar meus atalhos de teclado.
 
+** Undo-tree
+
+O =undo-tree= customiza o complicado sistema de "desfazer" do emacs para que as ações feitas em um buffer sejam visualizadas como uma árvore, como é tradicional em editores como o vim.
+
+#+begin_src emacs-lisp
+  (use-package undo-tree
+    :config
+    (global-undo-tree-mode))
+#+end_src
+
 ** Evil
 
 Eu não sou um grande fã dos atalhos de edição padrão do emacs, especialmente depois de ter conhecido os atalhos ergonômicos do vim. Felizmente, o excelente pacote =evil= permite ao emacs emular a experiência confortável de edição que o vim oferece.
@@ -171,11 +196,13 @@ Eu não sou um grande fã dos atalhos de edição padrão do emacs, especialment
   (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
   (use-package evil
-    :init
-    (setq evil-want-integration t)
-    (setq evil-want-keybinding nil)
-    (setq evil-want-C-u-scroll t)
-    (setq evil-want-C-i-jump nil)
+    :after undo-tree
+    :custom
+    (evil-want-integration t)
+    (evil-want-keybinding nil)
+    (evil-want-C-u-scroll t)
+    (evil-want-C-i-jump nil)
+    (evil-undo-system 'undo-tree)
     :config
     (evil-mode 1)
     (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
@@ -286,13 +313,15 @@ Linhas numeradas são bem úteis...
 
 ** Fonte
 
+Aqui eu carrego a fonte utilizando a função definida [[#font][nessa seção]] do early-init.
+
 #+begin_src emacs-lisp
   (ed-set-font)
 #+end_src
 
 ** Tema
 
-Meus temas principais no momento são =modus-operandi= (claro) e =modus-vivendi= (escuro).
+Meus temas principais no momento são =modus-operandi= (claro) e =modus-vivendi= (escuro). Eu peguei da configuração do Protesilaos Stavrou, autor dos temas, um bloco de código que decide qual deles carregar de acordo com a hora. Se for dia, =modus-operandi=, senão, =modus-vivendi=.
 
 #+begin_src emacs-lisp
   (use-package modus-themes
@@ -313,7 +342,7 @@ Meus temas principais no momento são =modus-operandi= (claro) e =modus-vivendi=
 
 *** Minions
 
-De modo geral, eu gosto da modeline padrão. Eu só não gosto que a seção dos modos menores fique muito entulhada. O pacote =minions= substitui "ícones" dos modos menores pelo próprio e oferece um menu para gerenciá-los. Ele também permite que você selecione alguns para que sejam exibidos normalmente sempre que ativos, o que é ótimo.
+De modo geral, eu gosto da modeline padrão. Eu só não gosto que a seção dos modos menores fique muito entulhada. O pacote =minions= substitui os "ícones" dos demais modos menores pelo próprio e oferece um menu para gerenciá-los. Ele também permite que você selecione alguns para que sejam exibidos normalmente sempre que ativos, o que é ótimo.
 
 #+begin_src emacs-lisp
   (use-package minions
@@ -325,12 +354,13 @@ De modo geral, eu gosto da modeline padrão. Eu só não gosto que a seção dos
 
 *** Tempo
 
-Às vezes eu acho conveniente ver a hora na modeline.
+Eu acho conveniente ver a hora na modeline.
 
 #+begin_src emacs-lisp
   (setq display-time-format "%H:%M"
         display-time-default-load-average nil
         display-time-interval 60)
+  (display-time-mode 1)
 #+end_src
 
 * Completion
@@ -390,7 +420,7 @@ O =marginalia= inclui anotações úteis junto aos candidatos sempre que eles s�
 
 ** Corfu
 
-O =corfu= é análogo ao =vertico=, mas age em buffers comuns ao invés do minibuffer.
+O =corfu= é análogo ao =vertico=, mas age em buffers comuns ao invés do minibuffer. Sua interface lembra bastante a de IDEs como o Intellij e o Pycharm.
 
 #+begin_src emacs-lisp
   (use-package corfu
@@ -420,42 +450,44 @@ No entanto, o que realmente torna esse pacote especial é a biblioteca de funcio
 *** Aparência
 
 #+begin_src emacs-lisp
-    (defun ed-org-mode-setup ()
-      (org-indent-mode)
-      (visual-line-mode 1)
-      (dolist (pair '(("#+begin_src" . ?λ)
-                      ("#+BEGIN_SRC" . ?λ)
-                      ("#+end_src"   . ?λ)
-                      ("#+END_SRC"   . ?λ)))
-        (add-to-list 'prettify-symbols-alist pair))
-      (prettify-symbols-mode))
+  (defun ed-org-mode-setup ()
+    (org-indent-mode 1)
+    (visual-line-mode 1)
+    (dolist (pair '(("#+begin_src" . ?λ)
+                    ("#+BEGIN_SRC" . ?λ)
+                    ("#+end_src"   . ?λ)
+                    ("#+END_SRC"   . ?λ)))
+      (add-to-list 'prettify-symbols-alist pair))
+    (prettify-symbols-mode))
 
-    (use-package org
-      :defer t
-      :hook (org-mode . ed-org-mode-setup)
-      :custom
-      (org-hide-emphasis-markers t)
-      :config
-      (setq org-ellipsis " ▾"))
+  (use-package org
+    :defer t
+    :hook (org-mode . ed-org-mode-setup)
+    :custom
+    (org-hide-emphasis-markers t)
+    :config
+    (setq org-ellipsis " ▾"))
 
-    (use-package org-bullets
-      :hook (org-mode . org-bullets-mode)
-      :custom
-      (org-bullets-bullet-list '("●" "○")))
+  (use-package org-bullets
+    :hook (org-mode . org-bullets-mode)
+    :custom
+    (org-bullets-bullet-list '("●" "○")))
 
-    (defun ed-org-mode-visual-fill ()
-      (setq visual-fill-column-width 100
-            visual-fill-column-center-text t)
-      (visual-fill-column-mode 1))
+  (defun ed-org-mode-visual-fill ()
+    (setq visual-fill-column-width 100
+          visual-fill-column-center-text t)
+    (visual-fill-column-mode 1))
 
-    (use-package visual-fill-column
-      :hook (org-mode . ed-org-mode-visual-fill))
+  (use-package visual-fill-column
+    :hook (org-mode . ed-org-mode-visual-fill))
 #+end_src
 
 *** Configuração literária
 :properties:
 :custom_id: lit
 :end:
+
+Utilizar uma configuração literária tem muitas vantagens. A principal é não esquecer qual é o próposito que uma parte da config cumpre dois dias depois de tê-la escrito.
 
 #+begin_src emacs-lisp
   (defun ed-org-babel-tangle-config ()
@@ -464,7 +496,8 @@ No entanto, o que realmente torna esse pacote especial é a biblioteca de funcio
       (let ((org-confirm-babel-evaluate nil))
         (org-babel-tangle))))
 
-  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'ed-org-babel-tangle-config)))
+  (add-hook 'org-mode-hook
+            (lambda () (add-hook 'after-save-hook #'ed-org-babel-tangle-config)))
 #+end_src
 
 ** Dired
@@ -474,6 +507,7 @@ O editor de diretórios ou =dired= é o explorador de arquivos nativo do emacs.
 #+begin_src emacs-lisp
   (use-package dired
     :ensure nil
+    :hook (dired-mode . dired-hide-details-mode)
     :custom
     (dired-listing-switches "-Al --group-directories-first")
     :general
@@ -497,23 +531,22 @@ A =eshell= é uma shell estilo UNIX integrada ao emacs. Ela permite que você n�
   (defun ed-eshell-setup ()
     (require 'evil-collection-eshell)
     (evil-collection-eshell-setup)
-
     ;; Salve comandos no histórico à medida que eles forem inseridos
     (add-hook 'eshell-pre-command-hook #'eshell-save-some-history)
-
     ;; Reduza o buffer do eshell quando ele exceder o máximo de linhas
-    (add-to-list 'eshell-output-filter-functions #'eshell-truncate-buffer)
-
-    (setq eshell-history-size 10000
-          eshell-hist-ignore-dups t
-          eshell-buffer-maximum-lines 10000
-          eshell-prompt-function #'ed-eshell-prompt
-          eshell-prompt-regexp "^[^λ#]*[λ#] "
-          eshell-scroll-to-bottom-on-input t))
+    (add-to-list 'eshell-output-filter-functions #'eshell-truncate-buffer))
 
   (use-package eshell
     :ensure nil
     :hook (eshell-first-time-mode . ed-eshell-setup)
+    :custom
+    (eshell-banner-message "GNU emacs shell for fun and profit\n\n")
+    (eshell-history-size 10000)
+    (eshell-hist-ignore-dups t)
+    (eshell-buffer-maximum-lines 10000)
+    (eshell-scroll-to-bottom-on-input t)
+    (eshell-prompt-regexp "^[^λ#]*[λ#] ")
+    (eshell-prompt-function #'ed-eshell-prompt)
     :general
     (ed-leader-key
       "oe" #'eshell))
@@ -537,7 +570,7 @@ O melhor emulador de terminal para o emacs.
 
 ** Pomodoro
 
-Um cronômetro pomodoro bão. (preciso melhorar esse texto)
+O pacote =pomm.el= implementa um [[https://pt.wikipedia.org/wiki/Técnica_pomodoro][cronômetro pomodoro]] dentro do emacs.
 
 #+begin_src emacs-lisp
   (use-package pomm
@@ -552,7 +585,7 @@ Um cronômetro pomodoro bão. (preciso melhorar esse texto)
 
 * Programação
 
-Essa seção está bem mal documentada e desorganizada. ¯\_(ツ)_/¯
+Programação é um dos usos principais que eu tenho para o emacs. Com algumas configurações e pacotes, a experiência de programar com ele é realmente excelente.
 
 ** Git
 
@@ -569,6 +602,8 @@ O =magit= é um pacote clássico do emacs. Possivelmente a melhor porcelana exis
 #+end_src
 
 ** Snippets
+
+O que é um programador sem snippets?
 
 #+begin_src emacs-lisp
   (use-package yasnippet
@@ -632,11 +667,13 @@ O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um
     (lsp-ui-sideline-actions-icon lsp-ui-sideline-actions-icon-default)
 
     ;; lsp-ui miscelaneous
-    (lsp-lens-enable t)
+    (lsp-lens-enable nil)
     (lsp-signature-render-documentation nil))
 #+end_src
 
 *** Flycheck
+
+Um sistema de checagem sintática que se integra bem ao =lsp-mode=.
 
 #+begin_src emacs-lisp
   (use-package flycheck
@@ -644,6 +681,15 @@ O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um
 #+end_src
 
 *** Setup
+
+Setups específicos para as principais linguagens que eu utilizo.
+
+**** Assembly
+
+#+begin_src emacs-lisp
+  (use-package nasm-mode
+    :mode "\\.asm\\'")
+#+end_src
 
 **** C/C++
 
@@ -655,25 +701,6 @@ O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um
   (use-package cc-mode
     :hook ((c-mode . ed-c-cpp-setup)
            (c++-mode . ed-c-cpp-setup)))
-#+end_src
-
-**** Assembly
-
-#+begin_src emacs-lisp
-  (use-package nasm-mode
-    :mode "\\.asm\\'")
-#+end_src
-
-**** Python
-
-#+begin_src emacs-lisp
-  (defun ed-python-setup ()
-    (require 'lsp-pyright)
-    (lsp-deferred))
-
-  (use-package python-mode)
-  (use-package lsp-pyright
-    :hook (python-mode . ed-python-setup))
 #+end_src
 
 **** Dart/Flutter
@@ -693,6 +720,24 @@ O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um
     :general
     (ed-leader-key dart-mode-map
       "mr" '(flutter-run-or-hot-reload :which-key "hot reload")))
+#+end_src
+
+**** Python
+
+#+begin_src emacs-lisp
+  (defun ed-python-setup ()
+    (require 'lsp-pyright)
+    (lsp-deferred))
+
+  (use-package python-mode)
+  (use-package lsp-pyright
+    :hook (python-mode . ed-python-setup))
+#+end_src
+
+**** Yaml
+
+#+begin_src emacs-lisp
+  (use-package yaml-mode)
 #+end_src
 
 ** Miscelânea

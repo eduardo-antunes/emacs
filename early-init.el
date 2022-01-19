@@ -9,6 +9,6 @@
 (blink-cursor-mode  0)
 
 (defun ed-set-font ()
-  (set-frame-font "Source Code Pro-12" nil t))
+  (set-frame-font "Inconsolata-14" nil t))
 
 (add-hook 'server-after-make-frame-hook #'ed-set-font)

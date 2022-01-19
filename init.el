@@ -34,6 +34,14 @@
 
 (defalias #'yes-or-no-p #'y-or-n-p)
 
+(defun ed-make-directory-if-non-existing ()
+  (let ((parent-dir (file-name-directory buffer-file-name)))
+    (when (and (not (file-exists-p parent-dir))
+               (yes-or-no-p "This file's directory doesn't exist. Create it? ")
+      (make-directory parent-dir t)))))
+
+(add-to-list 'find-file-not-found-functions #'ed-make-directory-if-non-existing)
+
 (add-hook 'before-save-hook #'whitespace-cleanup)
 
 (setq delete-by-moving-to-trash t)
@@ -41,14 +49,20 @@
 (setq inhibit-startup-screen t)
 (setq-default initial-scratch-message nil)
 
+(use-package undo-tree
+  :config
+  (global-undo-tree-mode))
+
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
 (use-package evil
-  :init
-  (setq evil-want-integration t)
-  (setq evil-want-keybinding nil)
-  (setq evil-want-C-u-scroll t)
-  (setq evil-want-C-i-jump nil)
+  :after undo-tree
+  :custom
+  (evil-want-integration t)
+  (evil-want-keybinding nil)
+  (evil-want-C-u-scroll t)
+  (evil-want-C-i-jump nil)
+  (evil-undo-system 'undo-tree)
   :config
   (evil-mode 1)
   (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
@@ -148,6 +162,7 @@
 (setq display-time-format "%H:%M"
       display-time-default-load-average nil
       display-time-interval 60)
+(display-time-mode 1)
 
 (use-package orderless
   :init
@@ -198,7 +213,7 @@
     [backtab]  #'corfu-previous))
 
 (defun ed-org-mode-setup ()
-  (org-indent-mode)
+  (org-indent-mode 1)
   (visual-line-mode 1)
   (dolist (pair '(("#+begin_src" . ?λ)
                   ("#+BEGIN_SRC" . ?λ)
@@ -234,10 +249,12 @@
     (let ((org-confirm-babel-evaluate nil))
       (org-babel-tangle))))
 
-(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'ed-org-babel-tangle-config)))
+(add-hook 'org-mode-hook
+          (lambda () (add-hook 'after-save-hook #'ed-org-babel-tangle-config)))
 
 (use-package dired
   :ensure nil
+  :hook (dired-mode . dired-hide-details-mode)
   :custom
   (dired-listing-switches "-Al --group-directories-first")
   :general
@@ -255,23 +272,22 @@
 (defun ed-eshell-setup ()
   (require 'evil-collection-eshell)
   (evil-collection-eshell-setup)
-
   ;; Salve comandos no histórico à medida que eles forem inseridos
   (add-hook 'eshell-pre-command-hook #'eshell-save-some-history)
-
   ;; Reduza o buffer do eshell quando ele exceder o máximo de linhas
-  (add-to-list 'eshell-output-filter-functions #'eshell-truncate-buffer)
-
-  (setq eshell-history-size 10000
-        eshell-hist-ignore-dups t
-        eshell-buffer-maximum-lines 10000
-        eshell-prompt-function #'ed-eshell-prompt
-        eshell-prompt-regexp "^[^λ#]*[λ#] "
-        eshell-scroll-to-bottom-on-input t))
+  (add-to-list 'eshell-output-filter-functions #'eshell-truncate-buffer))
 
 (use-package eshell
   :ensure nil
   :hook (eshell-first-time-mode . ed-eshell-setup)
+  :custom
+  (eshell-banner-message "GNU emacs shell for fun and profit\n\n")
+  (eshell-history-size 10000)
+  (eshell-hist-ignore-dups t)
+  (eshell-buffer-maximum-lines 10000)
+  (eshell-scroll-to-bottom-on-input t)
+  (eshell-prompt-regexp "^[^λ#]*[λ#] ")
+  (eshell-prompt-function #'ed-eshell-prompt)
   :general
   (ed-leader-key
     "oe" #'eshell))
@@ -350,11 +366,14 @@
   (lsp-ui-sideline-actions-icon lsp-ui-sideline-actions-icon-default)
 
   ;; lsp-ui miscelaneous
-  (lsp-lens-enable t)
+  (lsp-lens-enable nil)
   (lsp-signature-render-documentation nil))
 
 (use-package flycheck
   :hook (lsp-mode . flycheck-mode))
+
+(use-package nasm-mode
+  :mode "\\.asm\\'")
 
 (defun ed-c-cpp-setup ()
   (c-set-style "cc-mode")
@@ -363,17 +382,6 @@
 (use-package cc-mode
   :hook ((c-mode . ed-c-cpp-setup)
          (c++-mode . ed-c-cpp-setup)))
-
-(use-package nasm-mode
-  :mode "\\.asm\\'")
-
-(defun ed-python-setup ()
-  (require 'lsp-pyright)
-  (lsp-deferred))
-
-(use-package python-mode)
-(use-package lsp-pyright
-  :hook (python-mode . ed-python-setup))
 
 (use-package dart-mode)
 
@@ -389,6 +397,16 @@
   :general
   (ed-leader-key dart-mode-map
     "mr" '(flutter-run-or-hot-reload :which-key "hot reload")))
+
+(defun ed-python-setup ()
+  (require 'lsp-pyright)
+  (lsp-deferred))
+
+(use-package python-mode)
+(use-package lsp-pyright
+  :hook (python-mode . ed-python-setup))
+
+(use-package yaml-mode)
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
