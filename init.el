@@ -15,6 +15,10 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
+(set-default-coding-systems 'utf-8)
+
+(setq delete-by-moving-to-trash t)
+
 (setq user-full-name       "Eduardo Antunes"
       user-real-login-name "Eduardo"
       user-login-name      "eduardo"
@@ -29,9 +33,6 @@
 (when (file-exists-p custom-file)
   (load custom-file))
 
-(use-package smooth-scrolling
-  :init (smooth-scrolling-mode 1))
-
 (defalias #'yes-or-no-p #'y-or-n-p)
 
 (defun ed-make-directory-if-non-existing ()
@@ -44,10 +45,13 @@
 
 (add-hook 'before-save-hook #'whitespace-cleanup)
 
-(setq delete-by-moving-to-trash t)
-
-(setq inhibit-startup-screen t)
-(setq-default initial-scratch-message nil)
+(use-package which-key
+  :defer 0
+  :custom
+  (which-key-sort-order #'which-key-prefix-then-key-order)
+  :config
+  (which-key-mode)
+  (setq which-key-idle-delay 1))
 
 (use-package undo-tree
   :config
@@ -117,28 +121,12 @@
     "o"   '(:ignore t :which-key "open")
     "m"   '(:ignore t :which-key "mode")))
 
-(use-package which-key
-  :defer 0
-  :custom
-  (which-key-sort-order #'which-key-prefix-then-key-order)
-  :config
-  (which-key-mode)
-  (setq which-key-idle-delay 1))
-
-(column-number-mode)
-(global-display-line-numbers-mode t)
-(setq display-line-numbers-type 'relative)
-
-(dolist (mode '(org-mode-hook
-                eww-mode-hook
-                calendar-mode-hook
-                term-mode-hook
-                vterm-mode-hook
-                shell-mode-hook
-                eshell-mode-hook))
-  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+(defun ed-set-font ()
+  "Carrega a minha fonte preferida"
+  (set-frame-font "Iosevka-14" nil t))
 
 (ed-set-font)
+(add-hook 'server-after-make-frame-hook #'ed-set-font)
 
 (use-package modus-themes
   :custom
@@ -163,6 +151,22 @@
       display-time-default-load-average nil
       display-time-interval 60)
 (display-time-mode 1)
+
+(column-number-mode)
+(global-display-line-numbers-mode t)
+(setq display-line-numbers-type 'relative)
+
+(dolist (mode '(org-mode-hook
+                eww-mode-hook
+                calendar-mode-hook
+                term-mode-hook
+                vterm-mode-hook
+                shell-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+(use-package smooth-scrolling
+  :init (smooth-scrolling-mode 1))
 
 (use-package orderless
   :init
