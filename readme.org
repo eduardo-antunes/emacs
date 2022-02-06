@@ -7,9 +7,9 @@ Bem-vindo à minha humilde configuração do GNU emacs, um editor de texto livre
 
 O emacs é mais que um editor de texto. É também um interpretador de uma linguagem de scripting chamada de emacs-lisp ou elisp. Essa linguagem é utilizada para configurá-lo e extendê-lo. Quando o editor é iniciado, ele executa alguns arquivos de elisp do usuário. Esses arquivos são o =init.el= e o =early-init.el=, localizados, geralmente, sob o diretório =~/.emacs.d=.
 
-O =init.el= é o arquivo clássico de configuração do emacs. Já o =early-init.el= é uma adição mais recente. Ele é carregado em um estágio anterior da execução do editor, o que torna útil para certas configurações específicas.
+O =init.el= é o arquivo clássico de configuração do emacs. Já o =early-init.el= é uma adição mais recente ao ecossistema do editor. Ele é carregado em um estágio anterior da execução do programa, o que torna útil para algumas configurações específicas.
 
-Eu não edito nenhum dos dois diretamente. Ao invés disso, eu uso uma configuração literária: um documento org com blocos de emacs-lisp intercalados com texto explicativo, que é, claro, o que você está lendo agora. [[#lit][Essa parte]] da configuração faz com que, sempre que este arquivo seja salvo, o conteúdo dos blocos seja usado para gerar os arquivos.
+Eu não edito nenhum dos dois diretamente. Ao invés disso, eu uso uma configuração literária: um documento org com blocos de emacs-lisp intercalados com texto explicativo. Esse documento, claro, é o que você está lendo agora. [[#lit][Essa parte]] da configuração faz com que, sempre que ele seja salvo, o conteúdo dos blocos seja usado para gerar os arquivos.
 
 * =early-init.el=
 :properties:
@@ -20,24 +20,39 @@ Todos os blocos de elisp nessa seção se destinam ao =early-init.el=.
 
 ** Garbage collection
 
-Como todo interpretador moderno, o emacs realiza garbage collection, uma operação que consiste em dealocar objetos que não estejam mais em uso pelo programa sendo executado (no caso, a minha configuração e os pacotes que eu uso). Essa funcionalidade é ativada sempre que esses objetos consomem uma quantidade fixa de memória. Porém, o valor padrão para essa quantidade é muito baixo, o que prejudica a performance de inicialização. Eu o ajusto aqui, para 50MB.
+Como todo interpretador moderno, o emacs realiza garbage collection, uma operação que consiste em dealocar objetos que não estejam mais em uso pelo programa sendo executado (no caso, a minha configuração e os pacotes que eu uso). Essa funcionalidade é ativada sempre que esses objetos consomem uma quantidade fixa de memória.
+
+Recentemente, eu estou experimentando [[#gc][um pacote]] que implementa uma política diferente para a realização dessa operação. Assim sendo, eu desativo a política padrão tornando o limite de consumo de memória o maior possível.
 
 #+begin_src emacs-lisp
   ;; -*- lexical-binding: t; -*-
-  (setq gc-cons-threshold (* 50 1000 1000))
+  (setq gc-cons-threshold most-positive-fixnum)
 #+end_src
 
 ** Obrigado, mas não
 
 #+begin_src emacs-lisp
   (setq inhibit-startup-screen t)
-  (setq-default initial-scratch-message nil)
-  (setq inhibit-startup-echo-area-message "eduardo")
+  (setq-default inhibit-message t
+                initial-scratch-message nil
+                initial-major-mode 'fundamental-mode)
+#+end_src
+
+** Fonte
+
+No momento, a minha fonte de preferência é a Iosevka.
+
+#+begin_src emacs-lisp
+  (defun ed-set-font ()
+    "Carrega a minha fonte de preferência"
+    (set-frame-font "Iosevka-14" nil t))
+
+  (add-hook 'server-after-make-frame-hook #'ed-set-font)
 #+end_src
 
 ** Visual
 
-Eu não faço questão de alguns elementos da interface.
+Eu não faço questão de alguns elementos da interface, então é melhor que o emacs nem os desenhe.
 
 #+begin_src emacs-lisp
   (menu-bar-mode     -1)
@@ -90,18 +105,36 @@ O =use-package= é um excelente pacote que introduz uma camada de abstração so
 
 ** Geral
 
+*** Garbage Collection
+:properties:
+:custom_id: gc
+:end:
+
+O =gcmh= (garbage collection magit hack) dispara a garbage-collection com alta frequência quando o editor está parado e com baixa frequência quando ele está sendo ativamente utilizado.
+
+#+begin_src emacs-lisp
+  (use-package gcmh
+    :hook (after-init . gcmh-mode)
+    :custom
+    (gcmh-idle-delay 'auto)  ; default is 15s
+    (gcmh-auto-idle-delay-factor 10)
+    (gcmh-high-cons-threshold (* 16 1024 1024))) ;; 16MB
+#+end_src
+
 *** Padrões mais sãos
 
 O sistema de codificação padrão deveria ser utf-8.
 
 #+begin_src emacs-lisp
-  (set-default-coding-systems 'utf-8)
+  (set-language-environment "UTF-8")
+  (setq default-input-method nil)
 #+end_src
 
 Mover arquivos para a lixeira é mais seguro que excluir eles pra sempre.
 
 #+begin_src emacs-lisp
   (setq delete-by-moving-to-trash t)
+  (setq default-input-method nil)
 #+end_src
 
 *** Informações pessoais
@@ -110,8 +143,6 @@ Alguns pacotes precisam desse tipo de informação.
 
 #+begin_src emacs-lisp
   (setq user-full-name       "Eduardo Antunes"
-        user-real-login-name "Eduardo"
-        user-login-name      "eduardo"
         user-mail-address    "eduardoantunes986@gmail.com")
 #+end_src
 
@@ -174,6 +205,12 @@ O pacote =which-key= ajuda muito quando eu esqueço de um atalho ou quero ver os
     :config
     (which-key-mode)
     (setq which-key-idle-delay 1))
+#+end_src
+
+*** Miscelânea
+
+#+begin_src emacs-lisp
+  (setq inhibit-startup-echo-area-message (user-login-name))
 #+end_src
 
 ** Teclado
@@ -278,22 +315,8 @@ Na minha opinião, o visual padrão é ok, mas eu não usaria por um período pr
 
 *** Fonte
 
-No momento, a minha fonte de preferência é a Iosevka. No Fedora, a minha distribuição Linux principal, é possível instalá-la com os seguintes comandos.
-
-#+begin_src sh
-  $ sudo dnf copr enable peterwu/iosevka
-  $ sudo dnf install iosevka-fonts
-#+end_src
-
-O próximo bloco de elisp se certifica de que a fonte seja carregada, independemente do modo de inicialização do emacs.
-
 #+begin_src emacs-lisp
-  (defun ed-set-font ()
-    "Carrega a minha fonte preferida"
-    (set-frame-font "Iosevka-14" nil t))
-
   (ed-set-font)
-  (add-hook 'server-after-make-frame-hook #'ed-set-font)
 #+end_src
 
 *** Tema
@@ -317,8 +340,6 @@ Meus temas principais no momento são =modus-operandi= (claro) e =modus-vivendi=
 
 *** Modeline
 
-**** Minions
-
 De modo geral, eu gosto da modeline padrão. Eu só não gosto que a seção dos modos menores fique muito entulhada. O pacote =minions= substitui os "ícones" dos demais modos menores pelo próprio e oferece um menu para gerenciá-los. Ele também permite que você selecione alguns para que sejam exibidos normalmente sempre que ativos, o que é ótimo.
 
 #+begin_src emacs-lisp
@@ -329,9 +350,7 @@ De modo geral, eu gosto da modeline padrão. Eu só não gosto que a seção dos
     :config (minions-mode 1))
 #+end_src
 
-**** Tempo
-
-Eu acho conveniente ver a hora na modeline.
+Eu também acho conveniente ver a hora na modeline.
 
 #+begin_src emacs-lisp
   (setq display-time-format "%H:%M"
@@ -480,7 +499,7 @@ No entanto, o que realmente torna esse pacote especial é a biblioteca de funcio
   (use-package org-bullets
     :hook (org-mode . org-bullets-mode)
     :custom
-    (org-bullets-bullet-list '("●" "○")))
+    (org-bullets-bullet-list '("·")))
 
   (defun ed-org-mode-visual-fill ()
     (setq visual-fill-column-width 100
@@ -602,12 +621,21 @@ O =magit= é um pacote clássico do emacs. Possivelmente a melhor porcelana exis
 
 #+begin_src emacs-lisp
   (use-package magit
-    :commands (magit-status magit-get-current-branch)
+    :commands
+    (magit-status magit-get-current-branch)
     :custom
-    (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
+    (magit-display-buffer-function
+     #'magit-display-buffer-same-window-except-diff-v1)
     :general
     (ed-leader-key
       "g" '(magit-status :which-key "git")))
+#+end_src
+
+O =smerge= é uma ferramenta built-in que facilita a resolução de conflitos.
+
+#+begin_src emacs-lisp
+  (ed-leader-key 'smerge-mode-map
+    "s" '(:keymap smerge-basic-map :which-key "smerge"))
 #+end_src
 
 *** Snippets
@@ -751,13 +779,6 @@ Setups específicos para as principais linguagens que eu utilizo.
 
 *** Miscelânea
 
-O =rainbow-delimiters= exibe delimitadores correspondentes com uma mesma cor.
-
-#+begin_src emacs-lisp
-  (use-package rainbow-delimiters
-    :hook (prog-mode . rainbow-delimiters-mode))
-#+end_src
-
 O modo menor =electric-pair-mode= previne delimitadores desbalanceados.
 
 #+begin_src emacs-lisp
@@ -765,10 +786,10 @@ O modo menor =electric-pair-mode= previne delimitadores desbalanceados.
   (add-hook 'eshell-mode-hook (lambda () (electric-pair-local-mode 1)))
 #+end_src
 
-** Performance
+** Mensagens de novo
 
-Complemento para a configuração de garbage collection do =early-init.el=, em que eu aumento o limite de memória a ser dealocada que o emacs tolera antes de realizar uma "coleta de lixo" para 50MB. Essa configuração aumenta a performance na inicialização, mas durante o uso normal, 20MB é um valor mais razoável.
+Eu desativo a emissão de mensagens no =early-init.el=, mas essa configuração só é útil durante a inicialização. Depois, eu gosto de ter mensagens.
 
 #+begin_src emacs-lisp
-  (setq gc-cons-threshold (* 2 1000 1000))
+  (setq-default inhibit-message nil)
 #+end_src

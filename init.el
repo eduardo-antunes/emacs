@@ -15,13 +15,20 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-(set-default-coding-systems 'utf-8)
+(use-package gcmh
+  :hook (after-init . gcmh-mode)
+  :custom
+  (gcmh-idle-delay 'auto)  ; default is 15s
+  (gcmh-auto-idle-delay-factor 10)
+  (gcmh-high-cons-threshold (* 16 1024 1024))) ;; 16MB
+
+(set-language-environment "UTF-8")
+(setq default-input-method nil)
 
 (setq delete-by-moving-to-trash t)
+(setq default-input-method nil)
 
 (setq user-full-name       "Eduardo Antunes"
-      user-real-login-name "Eduardo"
-      user-login-name      "eduardo"
       user-mail-address    "eduardoantunes986@gmail.com")
 
 (use-package no-littering)
@@ -52,6 +59,8 @@
   :config
   (which-key-mode)
   (setq which-key-idle-delay 1))
+
+(setq inhibit-startup-echo-area-message (user-login-name))
 
 (use-package undo-tree
   :config
@@ -121,12 +130,7 @@
     "o"   '(:ignore t :which-key "open")
     "m"   '(:ignore t :which-key "mode")))
 
-(defun ed-set-font ()
-  "Carrega a minha fonte preferida"
-  (set-frame-font "Iosevka-14" nil t))
-
 (ed-set-font)
-(add-hook 'server-after-make-frame-hook #'ed-set-font)
 
 (use-package modus-themes
   :custom
@@ -237,7 +241,7 @@
 (use-package org-bullets
   :hook (org-mode . org-bullets-mode)
   :custom
-  (org-bullets-bullet-list '("●" "○")))
+  (org-bullets-bullet-list '("·")))
 
 (defun ed-org-mode-visual-fill ()
   (setq visual-fill-column-width 100
@@ -316,12 +320,17 @@
     "op" '(pomm :which-key "pomodoro")))
 
 (use-package magit
-  :commands (magit-status magit-get-current-branch)
+  :commands
+  (magit-status magit-get-current-branch)
   :custom
-  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
+  (magit-display-buffer-function
+   #'magit-display-buffer-same-window-except-diff-v1)
   :general
   (ed-leader-key
     "g" '(magit-status :which-key "git")))
+
+(ed-leader-key 'smerge-mode-map
+  "s" '(:keymap smerge-basic-map :which-key "smerge"))
 
 (use-package yasnippet
   :hook
@@ -412,10 +421,7 @@
 
 (use-package yaml-mode)
 
-(use-package rainbow-delimiters
-  :hook (prog-mode . rainbow-delimiters-mode))
-
 (add-hook 'prog-mode-hook (lambda () (electric-pair-local-mode 1)))
 (add-hook 'eshell-mode-hook (lambda () (electric-pair-local-mode 1)))
 
-(setq gc-cons-threshold (* 2 1000 1000))
+(setq-default inhibit-message nil)
