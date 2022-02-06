@@ -60,7 +60,7 @@
   (which-key-mode)
   (setq which-key-idle-delay 1))
 
-(setq inhibit-startup-echo-area-message (user-login-name))
+(setq inhibit-startup-echo-area-message "eduardo")
 
 (use-package undo-tree
   :config
@@ -114,15 +114,11 @@
     ":"   '(execute-extended-command :which-key "M-x")
 
     ;; compile operations
-    "c"   '(:ignore t :which-key "compile")
-    "cc"  #'compile
-    "cr"  #'recompile
+    "c"  #'compile
 
     ;; buffer operations
-    "b"   '(:ignore t :which-key "buffer")
-    "bb"  #'switch-to-buffer
-    "bd"  #'kill-current-buffer
-    "bk"  #'kill-buffer
+    "b"  '(switch-to-buffer :which-key "buffers")
+    "k"  #'kill-buffer
 
     ;; keymaps
     "w"   '(:keymap evil-window-map :which-key "window")
@@ -135,7 +131,7 @@
 (use-package modus-themes
   :custom
   (modus-themes-org-blocks 'gray-background)
-  (modus-themes-mode-line '(borderless 4))
+  (modus-themes-mode-line '(borderless 2))
   :general
   (ed-leader-key
     "t" #'modus-themes-toggle))
@@ -357,7 +353,7 @@
   (lsp-completion-provider :none)
   :config
   (setq lsp-headerline-breadcrumb-enable nil)
-  (lsp-enable-which-key-integration)
+  (lsp-enable-which-key-integration t)
   :general
   (ed-leader-key
     "l" '(:keymap lsp-command-map :which-key "lsp")))
@@ -396,21 +392,6 @@
   :hook ((c-mode . ed-c-cpp-setup)
          (c++-mode . ed-c-cpp-setup)))
 
-(use-package dart-mode)
-
-(use-package lsp-dart
-  :hook (dart-mode . lsp-deferred)
-  :init
-  (setq
-   lsp-dart-flutter-sdk-dir "~/Downloads/flutter"
-   lsp-dart-sdk-dir (concat lsp-dart-flutter-sdk-dir "/bin/cache/dart-sdk")))
-
-(use-package flutter
-  :after dart-mode
-  :general
-  (ed-leader-key dart-mode-map
-    "mr" '(flutter-run-or-hot-reload :which-key "hot reload")))
-
 (defun ed-python-setup ()
   (require 'lsp-pyright)
   (lsp-deferred))
@@ -421,7 +402,7 @@
 
 (use-package yaml-mode)
 
-(add-hook 'prog-mode-hook (lambda () (electric-pair-local-mode 1)))
-(add-hook 'eshell-mode-hook (lambda () (electric-pair-local-mode 1)))
+(add-hook 'prog-mode-hook   #'electric-pair-mode)
+(add-hook 'eshell-mode-hook #'electric-pair-local-mode)
 
 (setq-default inhibit-message nil)

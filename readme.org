@@ -210,7 +210,7 @@ O pacote =which-key= ajuda muito quando eu esqueço de um atalho ou quero ver os
 *** Miscelânea
 
 #+begin_src emacs-lisp
-  (setq inhibit-startup-echo-area-message (user-login-name))
+  (setq inhibit-startup-echo-area-message "eduardo")
 #+end_src
 
 ** Teclado
@@ -292,15 +292,11 @@ O =general.el= é um pacote análogo ao =use-package=, mas para a criação de a
       ":"   '(execute-extended-command :which-key "M-x")
 
       ;; compile operations
-      "c"   '(:ignore t :which-key "compile")
-      "cc"  #'compile
-      "cr"  #'recompile
+      "c"  #'compile
 
       ;; buffer operations
-      "b"   '(:ignore t :which-key "buffer")
-      "bb"  #'switch-to-buffer
-      "bd"  #'kill-current-buffer
-      "bk"  #'kill-buffer
+      "b"  '(switch-to-buffer :which-key "buffers")
+      "k"  #'kill-buffer
 
       ;; keymaps
       "w"   '(:keymap evil-window-map :which-key "window")
@@ -327,7 +323,7 @@ Meus temas principais no momento são =modus-operandi= (claro) e =modus-vivendi=
   (use-package modus-themes
     :custom
     (modus-themes-org-blocks 'gray-background)
-    (modus-themes-mode-line '(borderless 4))
+    (modus-themes-mode-line '(borderless 2))
     :general
     (ed-leader-key
       "t" #'modus-themes-toggle))
@@ -682,7 +678,7 @@ O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um
     (lsp-completion-provider :none)
     :config
     (setq lsp-headerline-breadcrumb-enable nil)
-    (lsp-enable-which-key-integration)
+    (lsp-enable-which-key-integration t)
     :general
     (ed-leader-key
       "l" '(:keymap lsp-command-map :which-key "lsp")))
@@ -740,25 +736,6 @@ Setups específicos para as principais linguagens que eu utilizo.
            (c++-mode . ed-c-cpp-setup)))
 #+end_src
 
-***** Dart/Flutter
-
-#+begin_src emacs-lisp
-  (use-package dart-mode)
-
-  (use-package lsp-dart
-    :hook (dart-mode . lsp-deferred)
-    :init
-    (setq
-     lsp-dart-flutter-sdk-dir "~/Downloads/flutter"
-     lsp-dart-sdk-dir (concat lsp-dart-flutter-sdk-dir "/bin/cache/dart-sdk")))
-
-  (use-package flutter
-    :after dart-mode
-    :general
-    (ed-leader-key dart-mode-map
-      "mr" '(flutter-run-or-hot-reload :which-key "hot reload")))
-#+end_src
-
 ***** Python
 
 #+begin_src emacs-lisp
@@ -771,7 +748,7 @@ Setups específicos para as principais linguagens que eu utilizo.
     :hook (python-mode . ed-python-setup))
 #+end_src
 
-***** Yaml
+***** Outros
 
 #+begin_src emacs-lisp
   (use-package yaml-mode)
@@ -782,8 +759,8 @@ Setups específicos para as principais linguagens que eu utilizo.
 O modo menor =electric-pair-mode= previne delimitadores desbalanceados.
 
 #+begin_src emacs-lisp
-  (add-hook 'prog-mode-hook (lambda () (electric-pair-local-mode 1)))
-  (add-hook 'eshell-mode-hook (lambda () (electric-pair-local-mode 1)))
+  (add-hook 'prog-mode-hook   #'electric-pair-mode)
+  (add-hook 'eshell-mode-hook #'electric-pair-local-mode)
 #+end_src
 
 ** Mensagens de novo
