@@ -292,7 +292,9 @@ O =general.el= é um pacote análogo ao =use-package=, mas para a criação de a
       ":"   '(execute-extended-command :which-key "M-x")
 
       ;; compile operations
-      "c"  #'compile
+      "c"   '(:ignore t :which-key "compilation")
+      "cc"  #'compile
+      "cr"  #'recompile
 
       ;; buffer operations
       "b"  '(switch-to-buffer :which-key "buffers")
@@ -317,21 +319,28 @@ Na minha opinião, o visual padrão é ok, mas eu não usaria por um período pr
 
 *** Tema
 
-Meus temas principais no momento são =modus-operandi= (claro) e =modus-vivendi= (escuro). Eu peguei da configuração do Protesilaos Stavrou, autor dos temas, um bloco de código que decide qual deles carregar de acordo com a hora. Se for dia, =modus-operandi=, senão, =modus-vivendi=.
+Meus temas principais são =modus-operandi= (claro) e =modus-vivendi= (escuro). Eu peguei da configuração do Protesilaos Stavrou, autor dos temas, um bloco de código que decide qual deles carregar de acordo com a hora. Se for dia, =modus-operandi=, senão, =modus-vivendi=.
+
+Estou experimentando alguns outros temas no momento.
 
 #+begin_src emacs-lisp
   (use-package modus-themes
     :custom
     (modus-themes-org-blocks 'gray-background)
-    (modus-themes-mode-line '(borderless 2))
     :general
     (ed-leader-key
       "t" #'modus-themes-toggle))
 
-  (let ((time (string-to-number (format-time-string "%H"))))
-    (if (and (> time 5) (< time 18))
-        (modus-themes-load-operandi)
-      (modus-themes-load-vivendi)))
+  ;; Outros temas
+  (use-package nord-theme)
+  (use-package dracula-theme)
+  (use-package gruvbox-theme)
+
+  (load-theme 'gruvbox-dark-hard t)
+  ;; (let ((time (string-to-number (format-time-string "%H"))))
+  ;;   (if (and (> time 5) (< time 18))
+  ;;       (modus-themes-load-operandi)
+  ;;     (modus-themes-load-vivendi)))
 #+end_src
 
 *** Modeline
@@ -642,9 +651,13 @@ O que é um programador sem snippets?
   (use-package yasnippet
     :hook
     (prog-mode . yas-minor-mode)
-    (org-mode . yas-minor-mode))
+    (org-mode . yas-minor-mode)
+    :general
+    (ed-leader-key
+      "y" '(yas-insert-snippet :which-key "yasnippet")))
 
-  (use-package yasnippet-snippets)
+  (use-package yasnippet-snippets
+    :after yasnippet)
 #+end_src
 
 *** Projetos
@@ -713,6 +726,20 @@ Um sistema de checagem sintática que se integra bem ao =lsp-mode=.
     :hook (lsp-mode . flycheck-mode))
 #+end_src
 
+**** Tree-sitter
+
+O pacote =tree-sitter= integra o emacs com o excelente programa de mesmo nome, o que pode ser utilizado para melhorar o suporte dado a várias linguagens.
+
+#+begin_src emacs-lisp
+  (use-package tree-sitter
+    :hook (tree-sitter-after-on . tree-sitter-hl-mode)
+    :config
+    (global-tree-sitter-mode 1))
+
+  (use-package tree-sitter-langs
+    :after tree-sitter)
+#+end_src
+
 **** Setup
 
 Setups específicos para as principais linguagens que eu utilizo.
@@ -734,6 +761,13 @@ Setups específicos para as principais linguagens que eu utilizo.
   (use-package cc-mode
     :hook ((c-mode . ed-c-cpp-setup)
            (c++-mode . ed-c-cpp-setup)))
+#+end_src
+
+***** Common Lisp
+
+#+begin_src emacs-lisp
+  (use-package sly
+    :hook (lisp-mode . sly))
 #+end_src
 
 ***** Python

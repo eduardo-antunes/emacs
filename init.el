@@ -114,7 +114,9 @@
     ":"   '(execute-extended-command :which-key "M-x")
 
     ;; compile operations
-    "c"  #'compile
+    "c"   '(:ignore t :which-key "compilation")
+    "cc"  #'compile
+    "cr"  #'recompile
 
     ;; buffer operations
     "b"  '(switch-to-buffer :which-key "buffers")
@@ -131,15 +133,20 @@
 (use-package modus-themes
   :custom
   (modus-themes-org-blocks 'gray-background)
-  (modus-themes-mode-line '(borderless 2))
   :general
   (ed-leader-key
     "t" #'modus-themes-toggle))
 
-(let ((time (string-to-number (format-time-string "%H"))))
-  (if (and (> time 5) (< time 18))
-      (modus-themes-load-operandi)
-    (modus-themes-load-vivendi)))
+;; Outros temas
+(use-package nord-theme)
+(use-package dracula-theme)
+(use-package gruvbox-theme)
+
+(load-theme 'gruvbox-dark-hard t)
+;; (let ((time (string-to-number (format-time-string "%H"))))
+;;   (if (and (> time 5) (< time 18))
+;;       (modus-themes-load-operandi)
+;;     (modus-themes-load-vivendi)))
 
 (use-package minions
   :custom
@@ -331,9 +338,13 @@
 (use-package yasnippet
   :hook
   (prog-mode . yas-minor-mode)
-  (org-mode . yas-minor-mode))
+  (org-mode . yas-minor-mode)
+  :general
+  (ed-leader-key
+    "y" '(yas-insert-snippet :which-key "yasnippet")))
 
-(use-package yasnippet-snippets)
+(use-package yasnippet-snippets
+  :after yasnippet)
 
 (use-package projectile
   :init
@@ -381,6 +392,14 @@
 (use-package flycheck
   :hook (lsp-mode . flycheck-mode))
 
+(use-package tree-sitter
+  :hook (tree-sitter-after-on . tree-sitter-hl-mode)
+  :config
+  (global-tree-sitter-mode 1))
+
+(use-package tree-sitter-langs
+  :after tree-sitter)
+
 (use-package nasm-mode
   :mode "\\.asm\\'")
 
@@ -391,6 +410,9 @@
 (use-package cc-mode
   :hook ((c-mode . ed-c-cpp-setup)
          (c++-mode . ed-c-cpp-setup)))
+
+(use-package sly
+  :hook (lisp-mode . sly))
 
 (defun ed-python-setup ()
   (require 'lsp-pyright)
