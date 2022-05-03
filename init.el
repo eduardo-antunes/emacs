@@ -129,24 +129,10 @@
     "m"   '(:ignore t :which-key "mode")))
 
 (ed-set-font)
-
-(use-package modus-themes
-  :custom
-  (modus-themes-org-blocks 'gray-background)
-  :general
-  (ed-leader-key
-    "t" #'modus-themes-toggle))
-
-;; Outros temas
-(use-package nord-theme)
-(use-package dracula-theme)
-(use-package gruvbox-theme)
-
-(load-theme 'gruvbox-dark-hard t)
-;; (let ((time (string-to-number (format-time-string "%H"))))
-;;   (if (and (> time 5) (< time 18))
-;;       (modus-themes-load-operandi)
-;;     (modus-themes-load-vivendi)))
+(use-package doom-themes
+  :config
+  (load-theme 'doom-one t)
+  (doom-themes-org-config))
 
 (use-package minions
   :custom
@@ -237,9 +223,7 @@
   :defer t
   :hook (org-mode . ed-org-mode-setup)
   :custom
-  (org-hide-emphasis-markers t)
-  :config
-  (setq org-ellipsis " ▾"))
+  (org-hide-emphasis-markers t))
 
 (use-package org-bullets
   :hook (org-mode . org-bullets-mode)
@@ -335,94 +319,11 @@
 (ed-leader-key 'smerge-mode-map
   "s" '(:keymap smerge-basic-map :which-key "smerge"))
 
-(use-package yasnippet
-  :hook
-  (prog-mode . yas-minor-mode)
-  (org-mode . yas-minor-mode)
-  :general
-  (ed-leader-key
-    "y" '(yas-insert-snippet :which-key "yasnippet")))
-
-(use-package yasnippet-snippets
-  :after yasnippet)
-
-(use-package projectile
-  :init
-  (setq projectile-keympa-prefix nil)
-  :config
-  (projectile-mode)
-  :general
-  (ed-leader-key
-    "p" '(:keymap projectile-command-map :which-key "project")))
-
-(use-package lsp-mode
-  :commands (lsp lsp-deferred)
-  :init
-  (setq lsp-keymap-prefix nil)
-  :custom
-  (lsp-enable-snippet t)
-  (lsp-completion-provider :none)
-  :config
-  (setq lsp-headerline-breadcrumb-enable nil)
-  (lsp-enable-which-key-integration t)
-  :general
-  (ed-leader-key
-    "l" '(:keymap lsp-command-map :which-key "lsp")))
-
-(use-package lsp-ui
-  :hook (lsp-mode . lsp-ui-mode)
-  :custom
-  ;; lsp-ui documentation panels
-  (lsp-ui-doc-max-height 8)
-  (lsp-ui-doc-max-width 72)
-  (lsp-ui-doc-delay 0.75)
-  (lsp-ui-doc-show-with-cursor nil)
-  (lsp-ui-doc-show-with-mouse nil)
-  (lsp-ui-doc-position 'at-point)
-
-  ;; lsp-ui sideline
-  (lsp-ui-sideline-show-diagnostics t)
-  (lsp-ui-sideline-show-code-actions nil)
-  (lsp-ui-sideline-actions-icon lsp-ui-sideline-actions-icon-default)
-
-  ;; lsp-ui miscelaneous
-  (lsp-lens-enable nil)
-  (lsp-signature-render-documentation nil))
-
 (use-package flycheck
   :hook (lsp-mode . flycheck-mode))
 
-(use-package tree-sitter
-  :hook (tree-sitter-after-on . tree-sitter-hl-mode)
-  :config
-  (global-tree-sitter-mode 1))
-
-(use-package tree-sitter-langs
-  :after tree-sitter)
-
-(use-package nasm-mode
-  :mode "\\.asm\\'")
-
-(defun ed-c-cpp-setup ()
-  (c-set-style "cc-mode")
-  (lsp-deferred))
-
-(use-package cc-mode
-  :hook ((c-mode . ed-c-cpp-setup)
-         (c++-mode . ed-c-cpp-setup)))
-
 (use-package sly
   :hook (lisp-mode . sly))
-
-(defun ed-python-setup ()
-  (require 'lsp-pyright)
-  (lsp-deferred))
-
-(use-package python-mode)
-(use-package lsp-pyright
-  :hook (python-mode . ed-python-setup))
-
-(use-package yaml-mode)
 
 (add-hook 'prog-mode-hook   #'electric-pair-mode)
 (add-hook 'eshell-mode-hook #'electric-pair-local-mode)

@@ -8,7 +8,7 @@
 
 (defun ed-set-font ()
   "Carrega a minha fonte de preferência"
-  (set-frame-font "Iosevka-14" nil t))
+  (set-frame-font "Iosevka Slab-16" nil t))
 
 (add-hook 'server-after-make-frame-hook #'ed-set-font)
 

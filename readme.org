@@ -45,7 +45,7 @@ No momento, a minha fonte de preferência é a Iosevka.
 #+begin_src emacs-lisp
   (defun ed-set-font ()
     "Carrega a minha fonte de preferência"
-    (set-frame-font "Iosevka-14" nil t))
+    (set-frame-font "Iosevka Slab-16" nil t))
 
   (add-hook 'server-after-make-frame-hook #'ed-set-font)
 #+end_src
@@ -110,7 +110,7 @@ O =use-package= é um excelente pacote que introduz uma camada de abstração so
 :custom_id: gc
 :end:
 
-O =gcmh= (garbage collection magit hack) dispara a garbage-collection com alta frequência quando o editor está parado e com baixa frequência quando ele está sendo ativamente utilizado.
+O =gcmh= (garbage collection magic hack) dispara a garbage-collection com alta frequência quando o editor está parado e com baixa frequência quando ele está sendo ativamente utilizado.
 
 #+begin_src emacs-lisp
   (use-package gcmh
@@ -311,36 +311,14 @@ O =general.el= é um pacote análogo ao =use-package=, mas para a criação de a
 
 Na minha opinião, o visual padrão é ok, mas eu não usaria por um período prolongado nem sob ameaça.
 
-*** Fonte
+*** Tema e fonte
 
 #+begin_src emacs-lisp
   (ed-set-font)
-#+end_src
-
-*** Tema
-
-Meus temas principais são =modus-operandi= (claro) e =modus-vivendi= (escuro). Eu peguei da configuração do Protesilaos Stavrou, autor dos temas, um bloco de código que decide qual deles carregar de acordo com a hora. Se for dia, =modus-operandi=, senão, =modus-vivendi=.
-
-Estou experimentando alguns outros temas no momento.
-
-#+begin_src emacs-lisp
-  (use-package modus-themes
-    :custom
-    (modus-themes-org-blocks 'gray-background)
-    :general
-    (ed-leader-key
-      "t" #'modus-themes-toggle))
-
-  ;; Outros temas
-  (use-package nord-theme)
-  (use-package dracula-theme)
-  (use-package gruvbox-theme)
-
-  (load-theme 'gruvbox-dark-hard t)
-  ;; (let ((time (string-to-number (format-time-string "%H"))))
-  ;;   (if (and (> time 5) (< time 18))
-  ;;       (modus-themes-load-operandi)
-  ;;     (modus-themes-load-vivendi)))
+  (use-package doom-themes
+    :config
+    (load-theme 'doom-one t)
+    (doom-themes-org-config))
 #+end_src
 
 *** Modeline
@@ -483,36 +461,34 @@ No entanto, o que realmente torna esse pacote especial é a biblioteca de funcio
 **** Aparência
 
 #+begin_src emacs-lisp
-  (defun ed-org-mode-setup ()
-    (org-indent-mode 1)
-    (visual-line-mode 1)
-    (dolist (pair '(("#+begin_src" . ?λ)
-                    ("#+BEGIN_SRC" . ?λ)
-                    ("#+end_src"   . ?λ)
-                    ("#+END_SRC"   . ?λ)))
-      (add-to-list 'prettify-symbols-alist pair))
-    (prettify-symbols-mode))
+    (defun ed-org-mode-setup ()
+      (org-indent-mode 1)
+      (visual-line-mode 1)
+      (dolist (pair '(("#+begin_src" . ?λ)
+                      ("#+BEGIN_SRC" . ?λ)
+                      ("#+end_src"   . ?λ)
+                      ("#+END_SRC"   . ?λ)))
+        (add-to-list 'prettify-symbols-alist pair))
+      (prettify-symbols-mode))
 
-  (use-package org
-    :defer t
-    :hook (org-mode . ed-org-mode-setup)
-    :custom
-    (org-hide-emphasis-markers t)
-    :config
-    (setq org-ellipsis " ▾"))
+    (use-package org
+      :defer t
+      :hook (org-mode . ed-org-mode-setup)
+      :custom
+      (org-hide-emphasis-markers t))
 
-  (use-package org-bullets
-    :hook (org-mode . org-bullets-mode)
-    :custom
-    (org-bullets-bullet-list '("·")))
+    (use-package org-bullets
+      :hook (org-mode . org-bullets-mode)
+      :custom
+      (org-bullets-bullet-list '("·")))
 
-  (defun ed-org-mode-visual-fill ()
-    (setq visual-fill-column-width 100
-          visual-fill-column-center-text t)
-    (visual-fill-column-mode 1))
+    (defun ed-org-mode-visual-fill ()
+      (setq visual-fill-column-width 100
+            visual-fill-column-center-text t)
+      (visual-fill-column-mode 1))
 
-  (use-package visual-fill-column
-    :hook (org-mode . ed-org-mode-visual-fill))
+    (use-package visual-fill-column
+      :hook (org-mode . ed-org-mode-visual-fill))
 #+end_src
 
 **** Configuração literária
@@ -643,79 +619,7 @@ O =smerge= é uma ferramenta built-in que facilita a resolução de conflitos.
     "s" '(:keymap smerge-basic-map :which-key "smerge"))
 #+end_src
 
-*** Snippets
-
-O que é um programador sem snippets?
-
-#+begin_src emacs-lisp
-  (use-package yasnippet
-    :hook
-    (prog-mode . yas-minor-mode)
-    (org-mode . yas-minor-mode)
-    :general
-    (ed-leader-key
-      "y" '(yas-insert-snippet :which-key "yasnippet")))
-
-  (use-package yasnippet-snippets
-    :after yasnippet)
-#+end_src
-
-*** Projetos
-
-O pacote =projectile= é uma biblioteca de funções que operam ao nível de projeto, o que é muito útil em projetos de programação. Vários outros pacotes possuem boa integração com ele.
-
-#+begin_src emacs-lisp
-  (use-package projectile
-    :init
-    (setq projectile-keympa-prefix nil)
-    :config
-    (projectile-mode)
-    :general
-    (ed-leader-key
-      "p" '(:keymap projectile-command-map :which-key "project")))
-#+end_src
-
 *** Linguagens
-
-**** LSP
-
-O /language server protocol/ (protocolo de servidores de linguagem) ou LSP é um protocolo para a comunicação entre um editor de texto e ferramentas externas de suporte para linguagens de programação (/os language servers/). O emacs não possui um cliente nativo de LSP; pelo menos não por enquanto. Felizmente, o pacote =lsp-mode= fornece essa funcionalidade, e o pacote =lsp-ui= a integra com a interface gráfica do editor.
-
-#+begin_src emacs-lisp
-  (use-package lsp-mode
-    :commands (lsp lsp-deferred)
-    :init
-    (setq lsp-keymap-prefix nil)
-    :custom
-    (lsp-enable-snippet t)
-    (lsp-completion-provider :none)
-    :config
-    (setq lsp-headerline-breadcrumb-enable nil)
-    (lsp-enable-which-key-integration t)
-    :general
-    (ed-leader-key
-      "l" '(:keymap lsp-command-map :which-key "lsp")))
-
-  (use-package lsp-ui
-    :hook (lsp-mode . lsp-ui-mode)
-    :custom
-    ;; lsp-ui documentation panels
-    (lsp-ui-doc-max-height 8)
-    (lsp-ui-doc-max-width 72)
-    (lsp-ui-doc-delay 0.75)
-    (lsp-ui-doc-show-with-cursor nil)
-    (lsp-ui-doc-show-with-mouse nil)
-    (lsp-ui-doc-position 'at-point)
-
-    ;; lsp-ui sideline
-    (lsp-ui-sideline-show-diagnostics t)
-    (lsp-ui-sideline-show-code-actions nil)
-    (lsp-ui-sideline-actions-icon lsp-ui-sideline-actions-icon-default)
-
-    ;; lsp-ui miscelaneous
-    (lsp-lens-enable nil)
-    (lsp-signature-render-documentation nil))
-#+end_src
 
 **** Flycheck
 
@@ -726,66 +630,13 @@ Um sistema de checagem sintática que se integra bem ao =lsp-mode=.
     :hook (lsp-mode . flycheck-mode))
 #+end_src
 
-**** Tree-sitter
-
-O pacote =tree-sitter= integra o emacs com o excelente programa de mesmo nome, o que pode ser utilizado para melhorar o suporte dado a várias linguagens.
-
-#+begin_src emacs-lisp
-  (use-package tree-sitter
-    :hook (tree-sitter-after-on . tree-sitter-hl-mode)
-    :config
-    (global-tree-sitter-mode 1))
-
-  (use-package tree-sitter-langs
-    :after tree-sitter)
-#+end_src
-
 **** Setup
 
-Setups específicos para as principais linguagens que eu utilizo.
-
-***** Assembly
-
-#+begin_src emacs-lisp
-  (use-package nasm-mode
-    :mode "\\.asm\\'")
-#+end_src
-
-***** C/C++
-
-#+begin_src emacs-lisp
-  (defun ed-c-cpp-setup ()
-    (c-set-style "cc-mode")
-    (lsp-deferred))
-
-  (use-package cc-mode
-    :hook ((c-mode . ed-c-cpp-setup)
-           (c++-mode . ed-c-cpp-setup)))
-#+end_src
-
-***** Common Lisp
+Setups específicos para as principais linguagens que eu edito com o emacs.
 
 #+begin_src emacs-lisp
   (use-package sly
     :hook (lisp-mode . sly))
-#+end_src
-
-***** Python
-
-#+begin_src emacs-lisp
-  (defun ed-python-setup ()
-    (require 'lsp-pyright)
-    (lsp-deferred))
-
-  (use-package python-mode)
-  (use-package lsp-pyright
-    :hook (python-mode . ed-python-setup))
-#+end_src
-
-***** Outros
-
-#+begin_src emacs-lisp
-  (use-package yaml-mode)
 #+end_src
 
 *** Miscelânea
@@ -797,7 +648,7 @@ O modo menor =electric-pair-mode= previne delimitadores desbalanceados.
   (add-hook 'eshell-mode-hook #'electric-pair-local-mode)
 #+end_src
 
-** Mensagens de novo
+** Finalização
 
 Eu desativo a emissão de mensagens no =early-init.el=, mas essa configuração só é útil durante a inicialização. Depois, eu gosto de ter mensagens.
 
